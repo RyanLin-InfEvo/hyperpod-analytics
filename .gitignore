@@ -1,0 +1,13 @@
+.directory
+docs/
+.gemini/
+.worktrees/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+secrets/
+*credentials*.json
+.venv/
+__pycache__/
