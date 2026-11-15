@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": 1762386600000,
+  "latestSnapshotAt": 1762386600000,
+  "launchedAt": 1761955200000,
+  "whitelistVersion": "2026-11-05",
+  "criteriaVersion": 2,
+  "coins": [
+    {
+      "coin": "BTC",
+      "pinned": true,
+      "trackedFrom": 1761523200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "WIF",
+      "pinned": false,
+      "trackedFrom": 1762128000000,
+      "trackedTo": null
+    }
+  ],
+  "files": {
+    "snapshotDays": ["2026-10-30", "2026-10-31", "2026-11-01"],
+    "snapshotMonths": ["2026-10"],
+    "fills": {
+      "BTC": {
+        "days": ["2026-10-30", "2026-10-31", "2026-11-01"],
+        "months": ["2026-10"]
+      }
+    },
+    "candles": {
+      "BTC": {
+        "months5m": ["2026-10", "2026-11"],
+        "hasBackfill": true,
+        "hasOverview4h": true
+      }
+    }
+  },
+  "storage": {
+    "totalBytesOnDisk": 102400,
+    "softLimitBytes": 800000000
+  },
+  "pipeline": {
+    "fastLastOk": 1762386600000,
+    "dailyLastOk": 1762300800000,
+    "warnings": []
+  }
+}

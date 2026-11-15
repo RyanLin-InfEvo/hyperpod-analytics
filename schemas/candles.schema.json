@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RyanLin-InfEvo/hyperpod-analytics/main/schemas/candles.schema.json",
+  "title": "HyperPod Archived Candles",
+  "description": "Archived OHLCV candles for 5m monthly files, overview_4h, and combined backfill_15m_1h.",
+  "$defs": {
+    "candleRow": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "number",
+          "minimum": 0
+        }
+      ],
+      "minItems": 6,
+      "maxItems": 6,
+      "items": false
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "coin", "interval", "c"],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "coin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interval": {
+          "type": "string",
+          "enum": ["5m", "15m", "1h", "4h"]
+        },
+        "c": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candleRow"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "coin", "interval", "c15m", "c1h"],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "coin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interval": {
+          "type": "string",
+          "const": "15m_1h"
+        },
+        "c15m": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candleRow"
+          }
+        },
+        "c1h": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candleRow"
+          }
+        }
+      }
+    }
+  ]
+}

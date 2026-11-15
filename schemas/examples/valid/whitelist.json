@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "version": "2026-11-05",
+  "addresses": [
+    {
+      "id": 0,
+      "address": "0x1111111111111111111111111111111111111111",
+      "label": "Master Whale",
+      "master": null,
+      "subAccounts": ["0x2222222222222222222222222222222222222222"],
+      "coverageStart": 1761523200000,
+      "score": 0.87,
+      "metrics": {
+        "accountValue": 12500000.0,
+        "equitySource": "perp+spot",
+        "pnlAllTime": 4200000.0,
+        "roiAllTime": 0.61,
+        "pnlMonth": 310000.0,
+        "maxDrawdown": 0.18,
+        "profitFactor": 2.4,
+        "profitFactorRobust": 1.9,
+        "winRate": 0.58,
+        "nTrades": 143,
+        "historyDays": 212.0,
+        "fillsPerDay": 31.0,
+        "medianHoldMinutes": 540.0,
+        "makerRatio": 0.34,
+        "turnoverMonth": 6.1,
+        "fundingShare": 0.04
+      },
+      "membership": [
+        [1761523200000, 1761955200000, 0],
+        [1761955200000, null, 1]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "current": {
+    "version": 2,
+    "effectiveFrom": 1762128000000,
+    "hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "stage1": [
+      {
+        "key": "minAccountValue",
+        "label": "Min account value",
+        "op": ">=",
+        "value": 1000000,
+        "unit": "USD",
+        "description": "Minimum leaderboard or on-chain account value in USD"
+      }
+    ],
+    "gates": [
+      {
+        "key": "mdd",
+        "label": "Max drawdown",
+        "op": "<=",
+        "value": 0.45,
+        "unit": "ratio",
+        "description": "Peak-to-trough of perp all-time PnL relative to account value at peak"
+      },
+      {
+        "key": "pf",
+        "label": "Robust profit factor",
+        "op": ">=",
+        "value": 1.5,
+        "unit": "ratio",
+        "description": "Profit factor after removing the single largest winning trade"
+      }
+    ],
+    "membership": {
+      "exitAfterFailedDays": 3,
+      "subaccounts": "merge_after_filter",
+      "excludeVaults": true
+    },
+    "scope": {
+      "perpDex": "main",
+      "spot": false,
+      "hip3": false
+    },
+    "stats": {
+      "candidates": 2391,
+      "passed": 184,
+      "rejectedBy": {
+        "hft": 812,
+        "mdd": 403,
+        "pf": 377
+      }
+    }
+  },
+  "history": [
+    {
+      "version": 1,
+      "effectiveFrom": 1761523200000,
+      "effectiveTo": 1762128000000,
+      "hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "changes": [
+        {
+          "key": "pf",
+          "from": 1.3,
+          "to": 1.5
+        }
+      ]
+    }
+  ]
+}

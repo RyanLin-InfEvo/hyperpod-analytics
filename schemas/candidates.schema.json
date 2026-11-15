@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RyanLin-InfEvo/hyperpod-analytics/main/schemas/candidates.schema.json",
+  "title": "HyperPod Candidate Pool Statistics",
+  "description": "Anonymized Stage 2 candidate pool distribution metrics and rejection reasons for chart #1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "criteriaVersion", "candidates"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "criteriaVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "idx",
+          "passed",
+          "rejectReasons",
+          "fillsPerDay",
+          "makerRatio",
+          "medianHoldMinutes",
+          "maxDrawdown",
+          "profitFactorRobust",
+          "turnoverMonth"
+        ],
+        "properties": {
+          "idx": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "rejectReasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "role",
+                "hft",
+                "mm",
+                "funding",
+                "hedge",
+                "passive",
+                "sample",
+                "mdd",
+                "pf",
+                "lucky"
+              ]
+            }
+          },
+          "fillsPerDay": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "makerRatio": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "medianHoldMinutes": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "maxDrawdown": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "profitFactorRobust": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "turnoverMonth": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "nTrades": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "historyDays": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "fundingShare": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "hedgeRatio": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "topWinShare": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  }
+}

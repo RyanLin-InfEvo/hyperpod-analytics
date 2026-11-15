@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RyanLin-InfEvo/hyperpod-analytics/main/schemas/whitelist.schema.json",
+  "title": "HyperPod Whitelist",
+  "description": "Whitelist directory mapping immutable integer addrIds to addresses, scoring metrics, subaccount links, and point-in-time membership intervals.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "version", "addresses"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "addresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "address",
+          "label",
+          "master",
+          "subAccounts",
+          "coverageStart",
+          "score",
+          "metrics",
+          "membership"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "label": {
+            "type": ["string", "null"]
+          },
+          "master": {
+            "type": ["string", "null"],
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "subAccounts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          "coverageStart": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "accountValue",
+              "equitySource",
+              "pnlAllTime",
+              "roiAllTime",
+              "pnlMonth",
+              "maxDrawdown",
+              "profitFactor",
+              "profitFactorRobust",
+              "winRate",
+              "nTrades",
+              "historyDays",
+              "fillsPerDay",
+              "medianHoldMinutes",
+              "makerRatio",
+              "turnoverMonth",
+              "fundingShare"
+            ],
+            "properties": {
+              "accountValue": {
+                "type": "number",
+                "minimum": 0
+              },
+              "equitySource": {
+                "type": "string",
+                "enum": ["perp", "perp+spot"]
+              },
+              "pnlAllTime": {
+                "type": "number"
+              },
+              "roiAllTime": {
+                "type": "number"
+              },
+              "pnlMonth": {
+                "type": "number"
+              },
+              "maxDrawdown": {
+                "type": "number",
+                "minimum": 0
+              },
+              "profitFactor": {
+                "type": ["number", "null"],
+                "minimum": 0
+              },
+              "profitFactorRobust": {
+                "type": ["number", "null"],
+                "minimum": 0
+              },
+              "winRate": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "nTrades": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "historyDays": {
+                "type": "number",
+                "minimum": 0
+              },
+              "fillsPerDay": {
+                "type": "number",
+                "minimum": 0
+              },
+              "medianHoldMinutes": {
+                "type": "number",
+                "minimum": 0
+              },
+              "makerRatio": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "turnoverMonth": {
+                "type": "number",
+                "minimum": 0
+              },
+              "fundingShare": {
+                "type": "number",
+                "minimum": 0
+              },
+              "topWinShare": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "hedgeRatio": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "membership": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              ],
+              "minItems": 3,
+              "maxItems": 3,
+              "items": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

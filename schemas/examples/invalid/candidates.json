@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": 1762386600000,
+  "criteriaVersion": 2,
+  "candidates": [
+    {
+      "idx": 0,
+      "passed": false,
+      "rejectReasons": ["unknown_gate_code"],
+      "fillsPerDay": 24.5,
+      "makerRatio": 1.2,
+      "medianHoldMinutes": 480.0,
+      "maxDrawdown": 0.19,
+      "profitFactorRobust": 1.92,
+      "turnoverMonth": 6.4,
+      "address": "0x1111111111111111111111111111111111111111"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "current": {
+    "version": 0,
+    "effectiveFrom": 1762128000000,
+    "hash": "not-a-sha256",
+    "stage1": [
+      {
+        "key": "minAccountValue",
+        "label": "",
+        "op": ">=",
+        "value": 1000000,
+        "unit": "USD",
+        "description": "Missing label should fail"
+      }
+    ],
+    "gates": [],
+    "membership": {
+      "exitAfterFailedDays": 3,
+      "subaccounts": "merge_after_filter",
+      "excludeVaults": true
+    },
+    "scope": {
+      "perpDex": "all",
+      "spot": false,
+      "hip3": false
+    },
+    "stats": {
+      "candidates": 10,
+      "passed": 2,
+      "rejectedBy": {}
+    }
+  },
+  "history": []
+}

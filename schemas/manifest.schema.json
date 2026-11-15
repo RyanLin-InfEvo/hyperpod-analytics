@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RyanLin-InfEvo/hyperpod-analytics/main/schemas/manifest.schema.json",
+  "title": "HyperPod Manifest",
+  "description": "Root manifest describing available datasets, tracked coins, storage usage, and pipeline status on gh-pages/data/manifest.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "latestSnapshotAt",
+    "launchedAt",
+    "whitelistVersion",
+    "criteriaVersion",
+    "coins",
+    "files",
+    "storage",
+    "pipeline"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "latestSnapshotAt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "launchedAt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "whitelistVersion": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "criteriaVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "coins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["coin", "pinned", "trackedFrom", "trackedTo"],
+        "properties": {
+          "coin": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "trackedFrom": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trackedTo": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshotDays", "snapshotMonths", "fills", "candles"],
+      "properties": {
+        "snapshotDays": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "snapshotMonths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          }
+        },
+        "fills": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["days", "months"],
+            "properties": {
+              "days": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              },
+              "months": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}$"
+                }
+              }
+            }
+          }
+        },
+        "candles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["months5m", "hasBackfill", "hasOverview4h"],
+            "properties": {
+              "months5m": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}$"
+                }
+              },
+              "hasBackfill": {
+                "type": "boolean"
+              },
+              "hasOverview4h": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalBytesOnDisk", "softLimitBytes"],
+      "properties": {
+        "totalBytesOnDisk": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "softLimitBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fastLastOk", "dailyLastOk", "warnings"],
+      "properties": {
+        "fastLastOk": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "dailyLastOk": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

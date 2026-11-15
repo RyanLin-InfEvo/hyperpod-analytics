@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RyanLin-InfEvo/hyperpod-analytics/main/schemas/fills.schema.json",
+  "title": "HyperPod Aggregated Whitelist Fills",
+  "description": "Per-coin aggregated whitelist fills stored as fills/{coin}/days/{date}.json and fills/{coin}/months/{YYYY-MM}.json.gz.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "coin", "fills"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "coin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fills": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "integer",
+            "minimum": 0
+          },
+          {
+            "type": "integer",
+            "minimum": 0
+          },
+          {
+            "type": "string",
+            "enum": ["OL", "CL", "OS", "CS"]
+          },
+          {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          {
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "type": "integer",
+            "enum": [0, 1]
+          }
+        ],
+        "minItems": 7,
+        "maxItems": 7,
+        "items": false
+      }
+    }
+  }
+}

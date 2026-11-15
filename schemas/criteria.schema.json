@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RyanLin-InfEvo/hyperpod-analytics/main/schemas/criteria.schema.json",
+  "title": "HyperPod Filtering Criteria",
+  "description": "Current and historical read-only whitelist selection criteria exported from config/pipeline.yaml.",
+  "$defs": {
+    "ruleItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "op", "value", "unit", "description"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "type": "string",
+          "enum": ["<", "<=", ">", ">=", "==", "!=", "not_in"]
+        },
+        "value": {
+          "type": ["number", "boolean", "string"]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "current", "history"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "current": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "effectiveFrom",
+        "hash",
+        "stage1",
+        "gates",
+        "membership",
+        "scope",
+        "stats"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "effectiveFrom": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]+$"
+        },
+        "stage1": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleItem"
+          }
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleItem"
+          }
+        },
+        "membership": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["exitAfterFailedDays", "subaccounts", "excludeVaults"],
+          "properties": {
+            "exitAfterFailedDays": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "subaccounts": {
+              "type": "string",
+              "enum": ["independent", "merge_after_filter", "merge_before_filter"]
+            },
+            "excludeVaults": {
+              "type": "boolean"
+            }
+          }
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["perpDex", "spot", "hip3"],
+          "properties": {
+            "perpDex": {
+              "type": "string",
+              "const": "main"
+            },
+            "spot": {
+              "type": "boolean"
+            },
+            "hip3": {
+              "type": "boolean"
+            }
+          }
+        },
+        "stats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["candidates", "passed", "rejectedBy"],
+          "properties": {
+            "candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "passed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rejectedBy": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "effectiveFrom", "effectiveTo", "hash", "changes"],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "effectiveFrom": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "effectiveTo": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]+$"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["key", "from", "to"],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "from": {
+                  "type": ["number", "boolean", "string", "null"]
+                },
+                "to": {
+                  "type": ["number", "boolean", "string", "null"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
