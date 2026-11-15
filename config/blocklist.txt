@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Manual blocklist of addresses excluded from Stage 1, subaccount expansion, and Stage 2 scoring.
+# Format: one lowercase or checksummed 0x-prefixed 40-hex-character EVM address per line.
+# Blank lines and lines starting with '#' are ignored.

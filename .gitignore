@@ -1,6 +1,8 @@
 .directory
 .gemini/
 .worktrees/
+
+# Secrets & credentials
 .env
 .env.*
 *.pem
@@ -8,5 +10,24 @@
 *.p12
 secrets/
 *credentials*.json
+
+# Python / uv
 .venv/
 __pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+
+# Flutter / Dart
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+.fvm/flutter_sdk
