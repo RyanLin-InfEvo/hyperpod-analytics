@@ -1,0 +1,141 @@
+[
+  {
+    "name": "pm-test",
+    "subAccountUser": "0x4206fd6d4fb7d373f02bb91515588a6dde3eea9a",
+    "master": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "0.0",
+      "assetPositions": [],
+      "time": 1794721574080
+    },
+    "spotState": {
+      "portfolioMarginEnabled": true,
+      "balances": [
+        {
+          "coin": "USDC",
+          "token": 0,
+          "total": "0.00000287",
+          "hold": "0.0",
+          "entryNtl": "0.0"
+        }
+      ]
+    }
+  },
+  {
+    "name": "non-pm-test",
+    "subAccountUser": "0x6e1193b4ee03fad2a06f1d7e4153b721bfa4a4fa",
+    "master": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "0.0",
+      "assetPositions": [],
+      "time": 1794721574080
+    },
+    "spotState": {
+      "balances": []
+    }
+  },
+  {
+    "name": "old",
+    "subAccountUser": "0x3f86e2a1f0fb15d3773a69a0ce7540dce5d7b4b3",
+    "master": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "0.0",
+      "assetPositions": [],
+      "time": 1794721574080
+    },
+    "spotState": {
+      "balances": []
+    }
+  },
+  {
+    "name": "xyz",
+    "subAccountUser": "0xfba5c3c3db4252654d84e6ae3facbff62215af83",
+    "master": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "0.0",
+      "assetPositions": [],
+      "time": 1794721574080
+    },
+    "spotState": {
+      "balances": []
+    }
+  },
+  {
+    "name": "funding-test",
+    "subAccountUser": "0x8bea775107d7388259b0b430079ffa7eb5dec2a6",
+    "master": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "0.0",
+      "assetPositions": [],
+      "time": 1794721574080
+    },
+    "spotState": {
+      "balances": []
+    }
+  }
+]

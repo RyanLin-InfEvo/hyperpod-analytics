@@ -1,0 +1,81 @@
+{
+  "balances": [
+    {
+      "coin": "USDC",
+      "token": 0,
+      "total": "1051.53533442",
+      "hold": "1051.53088",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "HYPE",
+      "token": 150,
+      "total": "0.5014092",
+      "hold": "0.0",
+      "entryNtl": "43.79975074"
+    },
+    {
+      "coin": "STAR",
+      "token": 154,
+      "total": "51.23932828",
+      "hold": "0.0",
+      "entryNtl": "0.00512393"
+    },
+    {
+      "coin": "JPEG",
+      "token": 196,
+      "total": "66666.66666666",
+      "hold": "0.0",
+      "entryNtl": "1012.06666666"
+    },
+    {
+      "coin": "UBTC",
+      "token": 197,
+      "total": "0.0087480717",
+      "hold": "0.0",
+      "entryNtl": "796.31428965"
+    },
+    {
+      "coin": "UETH",
+      "token": 221,
+      "total": "2.324848887",
+      "hold": "0.0",
+      "entryNtl": "10120.33329"
+    },
+    {
+      "coin": "LATINA",
+      "token": 223,
+      "total": "33528.3573",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "USDT0",
+      "token": 268,
+      "total": "51.72399356",
+      "hold": "0.0",
+      "entryNtl": "51.68364884"
+    },
+    {
+      "coin": "LICKO",
+      "token": 307,
+      "total": "2417.63261029",
+      "hold": "0.0",
+      "entryNtl": "0.01450579"
+    },
+    {
+      "coin": "USDH",
+      "token": 360,
+      "total": "50.08655223",
+      "hold": "0.0",
+      "entryNtl": "49.62625681"
+    },
+    {
+      "coin": "MAX",
+      "token": 734,
+      "total": "1713251293.1109399796",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    }
+  ]
+}

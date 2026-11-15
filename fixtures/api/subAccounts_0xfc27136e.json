@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Outcome",
+    "subAccountUser": "0x31227cdf59a0e4dd9f497b58a36aea2fba2d7d93",
+    "master": "0xfc27136e42af1732ddc9ce2605ea9bff1b959d9d",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "35.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "35.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "35.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "35.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "35.0",
+      "assetPositions": [],
+      "time": 1794721520584
+    },
+    "spotState": {
+      "balances": []
+    }
+  }
+]

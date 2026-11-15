@@ -1,0 +1,313 @@
+[
+  {
+    "tag": "whale_disabled",
+    "address": "0xfc27136e42af1732ddc9ce2605ea9bff1b959d9d",
+    "short": "0xfc27136e",
+    "description": "Directional whale (user, disabled abstraction)",
+    "recordedAtMs": 1794721521403,
+    "summary": {
+      "ch_av": "23083445.821943",
+      "n_pos": 22,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 1,
+      "abstraction": "disabled",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0xfc27136e.json",
+      "spotClearinghouseState": "spotClearinghouseState_0xfc27136e.json",
+      "portfolio": "portfolio_0xfc27136e.json",
+      "userFillsByTime": "userFillsByTime_0xfc27136e.json",
+      "userRole": "userRole_0xfc27136e.json",
+      "subAccounts": "subAccounts_0xfc27136e.json",
+      "userAbstraction": "userAbstraction_0xfc27136e.json",
+      "userFunding": "userFunding_0xfc27136e.json"
+    }
+  },
+  {
+    "tag": "whale_default",
+    "address": "0x87f9cd15f5050a9283b8896300f7c8cf69ece2cf",
+    "short": "0x87f9cd15",
+    "description": "Large whale (user, default abstraction)",
+    "recordedAtMs": 1794721529340,
+    "summary": {
+      "ch_av": "24062444.3529370017",
+      "n_pos": 0,
+      "userFillsByTime_full_len": 115,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 50,
+      "abstraction": "default",
+      "userFunding_full_len": 1
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0x87f9cd15.json",
+      "spotClearinghouseState": "spotClearinghouseState_0x87f9cd15.json",
+      "portfolio": "portfolio_0x87f9cd15.json",
+      "userFillsByTime": "userFillsByTime_0x87f9cd15.json",
+      "userRole": "userRole_0x87f9cd15.json",
+      "subAccounts": "subAccounts_0x87f9cd15.json",
+      "userAbstraction": "userAbstraction_0x87f9cd15.json",
+      "userFunding": "userFunding_0x87f9cd15.json"
+    }
+  },
+  {
+    "tag": "mm_auros",
+    "address": "0x023a3d058020fb76cca98f01b3c48c8938a22355",
+    "short": "0x023a3d05",
+    "description": "High-frequency / MM-like ('Auros')",
+    "recordedAtMs": 1794721563733,
+    "summary": {
+      "ch_av": "5732643.739817",
+      "n_pos": 114,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 5,
+      "abstraction": "disabled",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0x023a3d05.json",
+      "spotClearinghouseState": "spotClearinghouseState_0x023a3d05.json",
+      "portfolio": "portfolio_0x023a3d05.json",
+      "userFillsByTime": "userFillsByTime_0x023a3d05.json",
+      "userRole": "userRole_0x023a3d05.json",
+      "subAccounts": "subAccounts_0x023a3d05.json",
+      "userAbstraction": "userAbstraction_0x023a3d05.json",
+      "userFunding": "userFunding_0x023a3d05.json"
+    }
+  },
+  {
+    "tag": "hft_top1",
+    "address": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+    "short": "0xf5d81a13",
+    "description": "High-volume trader (>$100M leaderboard AV)",
+    "recordedAtMs": 1794721565609,
+    "summary": {
+      "ch_av": "1621867.463426",
+      "n_pos": 30,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 20,
+      "abstraction": "disabled",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0xf5d81a13.json",
+      "spotClearinghouseState": "spotClearinghouseState_0xf5d81a13.json",
+      "portfolio": "portfolio_0xf5d81a13.json",
+      "userFillsByTime": "userFillsByTime_0xf5d81a13.json",
+      "userRole": "userRole_0xf5d81a13.json",
+      "subAccounts": "subAccounts_0xf5d81a13.json",
+      "userAbstraction": "userAbstraction_0xf5d81a13.json",
+      "userFunding": "userFunding_0xf5d81a13.json"
+    }
+  },
+  {
+    "tag": "unified_1",
+    "address": "0xdf9ea6ec3b7109935ccb4fb267e15ac1fb077ab1",
+    "short": "0xdf9ea6ec",
+    "description": "Unified Account (perp + spot collateral)",
+    "recordedAtMs": 1794721567391,
+    "summary": {
+      "ch_av": "782937.32182",
+      "n_pos": 1,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 80,
+      "abstraction": "unifiedAccount",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0xdf9ea6ec.json",
+      "spotClearinghouseState": "spotClearinghouseState_0xdf9ea6ec.json",
+      "portfolio": "portfolio_0xdf9ea6ec.json",
+      "userFillsByTime": "userFillsByTime_0xdf9ea6ec.json",
+      "userRole": "userRole_0xdf9ea6ec.json",
+      "subAccounts": "subAccounts_0xdf9ea6ec.json",
+      "userAbstraction": "userAbstraction_0xdf9ea6ec.json",
+      "userFunding": "userFunding_0xdf9ea6ec.json"
+    }
+  },
+  {
+    "tag": "unified_2",
+    "address": "0x1f250df59a777d61cb8bd043c12970f3afe4f925",
+    "short": "0x1f250df5",
+    "description": "Unified Account (ch AV == spot USDC total)",
+    "recordedAtMs": 1794721569373,
+    "summary": {
+      "ch_av": "6709328.0252320003",
+      "n_pos": 1,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 0,
+      "abstraction": "unifiedAccount",
+      "userFunding_full_len": 188
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0x1f250df5.json",
+      "spotClearinghouseState": "spotClearinghouseState_0x1f250df5.json",
+      "portfolio": "portfolio_0x1f250df5.json",
+      "userFillsByTime": "userFillsByTime_0x1f250df5.json",
+      "userRole": "userRole_0x1f250df5.json",
+      "subAccounts": "subAccounts_0x1f250df5.json",
+      "userAbstraction": "userAbstraction_0x1f250df5.json",
+      "userFunding": "userFunding_0x1f250df5.json"
+    }
+  },
+  {
+    "tag": "pm_1",
+    "address": "0xbf732ea04197942783e34730ed6e0f6099575d58",
+    "short": "0xbf732ea0",
+    "description": "Portfolio Margin (supplied USDC)",
+    "recordedAtMs": 1794721571233,
+    "summary": {
+      "ch_av": "1118838.418789",
+      "n_pos": 1,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 1,
+      "abstraction": "portfolioMargin",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0xbf732ea0.json",
+      "spotClearinghouseState": "spotClearinghouseState_0xbf732ea0.json",
+      "portfolio": "portfolio_0xbf732ea0.json",
+      "userFillsByTime": "userFillsByTime_0xbf732ea0.json",
+      "userRole": "userRole_0xbf732ea0.json",
+      "subAccounts": "subAccounts_0xbf732ea0.json",
+      "userAbstraction": "userAbstraction_0xbf732ea0.json",
+      "userFunding": "userFunding_0xbf732ea0.json"
+    }
+  },
+  {
+    "tag": "pm_2",
+    "address": "0xb1ec7febea4f841d525785955b7fe0e812d6e86a",
+    "short": "0xb1ec7feb",
+    "description": "Portfolio Margin (borrowed USDC against HYPE)",
+    "recordedAtMs": 1794721573131,
+    "summary": {
+      "ch_av": "2847465.45811",
+      "n_pos": 5,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 1,
+      "abstraction": "portfolioMargin",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0xb1ec7feb.json",
+      "spotClearinghouseState": "spotClearinghouseState_0xb1ec7feb.json",
+      "portfolio": "portfolio_0xb1ec7feb.json",
+      "userFillsByTime": "userFillsByTime_0xb1ec7feb.json",
+      "userRole": "userRole_0xb1ec7feb.json",
+      "subAccounts": "subAccounts_0xb1ec7feb.json",
+      "userAbstraction": "userAbstraction_0xb1ec7feb.json",
+      "userFunding": "userFunding_0xb1ec7feb.json"
+    }
+  },
+  {
+    "tag": "master_subs",
+    "address": "0x7fdafde5cfb5465924316eced2d3715494c517d1",
+    "short": "0x7fdafde5",
+    "description": "Master account with subAccounts ('BobbyBigSize')",
+    "recordedAtMs": 1794721574927,
+    "summary": {
+      "ch_av": "8591669.1402969994",
+      "n_pos": 35,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "user"
+      },
+      "n_subs": 5,
+      "abstraction": "disabled",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0x7fdafde5.json",
+      "spotClearinghouseState": "spotClearinghouseState_0x7fdafde5.json",
+      "portfolio": "portfolio_0x7fdafde5.json",
+      "userFillsByTime": "userFillsByTime_0x7fdafde5.json",
+      "userRole": "userRole_0x7fdafde5.json",
+      "subAccounts": "subAccounts_0x7fdafde5.json",
+      "userAbstraction": "userAbstraction_0x7fdafde5.json",
+      "userFunding": "userFunding_0x7fdafde5.json"
+    }
+  },
+  {
+    "tag": "subaccount_active",
+    "address": "0x6ecbb68c07bd4be7adb7f0365e9263e382aeca2d",
+    "short": "0x6ecbb68c",
+    "description": "Active subAccount",
+    "recordedAtMs": 1794721576855,
+    "summary": {
+      "ch_av": "329098.565245",
+      "n_pos": 171,
+      "userFillsByTime_full_len": 2000,
+      "role": {
+        "role": "subAccount",
+        "data": {
+          "master": "0xae6446c95cc4e455e9cf56f28757ab728d88e81e"
+        }
+      },
+      "n_subs": 0,
+      "abstraction": "disabled",
+      "userFunding_full_len": 500
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0x6ecbb68c.json",
+      "spotClearinghouseState": "spotClearinghouseState_0x6ecbb68c.json",
+      "portfolio": "portfolio_0x6ecbb68c.json",
+      "userFillsByTime": "userFillsByTime_0x6ecbb68c.json",
+      "userRole": "userRole_0x6ecbb68c.json",
+      "subAccounts": "subAccounts_0x6ecbb68c.json",
+      "userAbstraction": "userAbstraction_0x6ecbb68c.json",
+      "userFunding": "userFunding_0x6ecbb68c.json"
+    }
+  },
+  {
+    "tag": "vault_hlp",
+    "address": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+    "short": "0xdfc24b07",
+    "description": "Protocol vault (HLP)",
+    "recordedAtMs": 1794721578577,
+    "summary": {
+      "ch_av": "11411541.4919680003",
+      "n_pos": 0,
+      "userFillsByTime_full_len": 0,
+      "role": {
+        "role": "vault"
+      },
+      "n_subs": 0,
+      "abstraction": "default",
+      "userFunding_full_len": 0
+    },
+    "files": {
+      "clearinghouseState": "clearinghouseState_0xdfc24b07.json",
+      "spotClearinghouseState": "spotClearinghouseState_0xdfc24b07.json",
+      "portfolio": "portfolio_0xdfc24b07.json",
+      "userFillsByTime": "userFillsByTime_0xdfc24b07.json",
+      "userRole": "userRole_0xdfc24b07.json",
+      "subAccounts": "subAccounts_0xdfc24b07.json",
+      "userAbstraction": "userAbstraction_0xdfc24b07.json",
+      "userFunding": "userFunding_0xdfc24b07.json"
+    }
+  }
+]

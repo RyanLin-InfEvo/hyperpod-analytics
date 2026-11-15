@@ -1,0 +1,18 @@
+{
+  "balances": [
+    {
+      "coin": "HYPE",
+      "token": 150,
+      "total": "0.23133123",
+      "hold": "0.0",
+      "entryNtl": "17.06761743"
+    },
+    {
+      "coin": "MAX",
+      "token": 734,
+      "total": "5088116537.7376003265",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    }
+  ]
+}

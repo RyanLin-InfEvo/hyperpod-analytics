@@ -1,0 +1,248 @@
+{
+  "balances": [
+    {
+      "coin": "USDC",
+      "token": 0,
+      "total": "1342369.5245916699",
+      "hold": "131820.06591",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "PURR",
+      "token": 1,
+      "total": "654839.80088",
+      "hold": "0.0",
+      "entryNtl": "191120.72613874"
+    },
+    {
+      "coin": "LICK",
+      "token": 3,
+      "total": "80188.85812",
+      "hold": "0.0",
+      "entryNtl": "3.74640801"
+    },
+    {
+      "coin": "POINTS",
+      "token": 9,
+      "total": "30001.16197",
+      "hold": "0.0",
+      "entryNtl": "513.07864359"
+    },
+    {
+      "coin": "GMEOW",
+      "token": 11,
+      "total": "10708660.8926565498",
+      "hold": "0.0",
+      "entryNtl": "7016.06214876"
+    },
+    {
+      "coin": "XULIAN",
+      "token": 13,
+      "total": "20376.44466",
+      "hold": "0.0",
+      "entryNtl": "5.18376752"
+    },
+    {
+      "coin": "ILIENS",
+      "token": 15,
+      "total": "18089.22459",
+      "hold": "0.0",
+      "entryNtl": "4.37322078"
+    },
+    {
+      "coin": "CZ",
+      "token": 17,
+      "total": "0.0197254",
+      "hold": "0.0",
+      "entryNtl": "0.0041456"
+    },
+    {
+      "coin": "TATE",
+      "token": 20,
+      "total": "8751.4374",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "VEGAS",
+      "token": 25,
+      "total": "0.09884155",
+      "hold": "0.0",
+      "entryNtl": "0.00374899"
+    },
+    {
+      "coin": "CATNIP",
+      "token": 28,
+      "total": "0.01487002",
+      "hold": "0.0",
+      "entryNtl": "0.00013969"
+    },
+    {
+      "coin": "SELL",
+      "token": 30,
+      "total": "113383.38583",
+      "hold": "0.0",
+      "entryNtl": "9.82012861"
+    },
+    {
+      "coin": "GPT",
+      "token": 35,
+      "total": "7.4231292",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "BID",
+      "token": 37,
+      "total": "222.28103",
+      "hold": "0.0",
+      "entryNtl": "0.00001427"
+    },
+    {
+      "coin": "VAPOR",
+      "token": 42,
+      "total": "16.93661",
+      "hold": "0.0",
+      "entryNtl": "0.00003364"
+    },
+    {
+      "coin": "OMNIX",
+      "token": 53,
+      "total": "1.018367",
+      "hold": "0.0",
+      "entryNtl": "0.00012089"
+    },
+    {
+      "coin": "ARI",
+      "token": 58,
+      "total": "0.39509846",
+      "hold": "0.0",
+      "entryNtl": "0.00000008"
+    },
+    {
+      "coin": "MEOW",
+      "token": 61,
+      "total": "43126.822225",
+      "hold": "0.0",
+      "entryNtl": "31.15302855"
+    },
+    {
+      "coin": "PEAR",
+      "token": 71,
+      "total": "51406.166655",
+      "hold": "0.0",
+      "entryNtl": "5.14061666"
+    },
+    {
+      "coin": "NEIRO",
+      "token": 78,
+      "total": "39445.579316",
+      "hold": "0.0",
+      "entryNtl": "3.99189262"
+    },
+    {
+      "coin": "BERA",
+      "token": 80,
+      "total": "16835.493202",
+      "hold": "0.0",
+      "entryNtl": "139.87734937"
+    },
+    {
+      "coin": "WOW",
+      "token": 98,
+      "total": "9953.61446",
+      "hold": "0.0",
+      "entryNtl": "0.99536144"
+    },
+    {
+      "coin": "VAULT",
+      "token": 106,
+      "total": "9.37460424",
+      "hold": "0.0",
+      "entryNtl": "0.0093746"
+    },
+    {
+      "coin": "MONAD",
+      "token": 112,
+      "total": "29.48424576",
+      "hold": "0.0",
+      "entryNtl": "0.0013091"
+    },
+    {
+      "coin": "BOZO",
+      "token": 113,
+      "total": "65.0599724",
+      "hold": "0.0",
+      "entryNtl": "1.11236856"
+    },
+    {
+      "coin": "UP",
+      "token": 115,
+      "total": "915.336186",
+      "hold": "0.0",
+      "entryNtl": "0.91533618"
+    },
+    {
+      "coin": "HGOD",
+      "token": 137,
+      "total": "4160.14651622",
+      "hold": "0.0",
+      "entryNtl": "147.21111929"
+    },
+    {
+      "coin": "LUCKY",
+      "token": 143,
+      "total": "218390.36402",
+      "hold": "0.0",
+      "entryNtl": "2.35861593"
+    },
+    {
+      "coin": "MUNCH",
+      "token": 146,
+      "total": "490.88906",
+      "hold": "0.0",
+      "entryNtl": "0.00181628"
+    },
+    {
+      "coin": "HYPE",
+      "token": 150,
+      "total": "0.75308205",
+      "hold": "0.0",
+      "entryNtl": "46.65180299"
+    },
+    {
+      "coin": "JPEG",
+      "token": 196,
+      "total": "66666.66666666",
+      "hold": "0.0",
+      "entryNtl": "994.06666666"
+    },
+    {
+      "coin": "LATINA",
+      "token": 223,
+      "total": "53370.7095",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "LICKO",
+      "token": 307,
+      "total": "1299.6241689",
+      "hold": "0.0",
+      "entryNtl": "0.00779774"
+    },
+    {
+      "coin": "MAX",
+      "token": 734,
+      "total": "5684630.7503460003",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    }
+  ],
+  "tokenToAvailableAfterMaintenance": [
+    [
+      0,
+      "1276459.49163667"
+    ]
+  ]
+}

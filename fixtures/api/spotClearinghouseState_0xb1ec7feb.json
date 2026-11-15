@@ -1,0 +1,138 @@
+{
+  "portfolioMarginEnabled": true,
+  "balances": [
+    {
+      "coin": "USDC",
+      "token": 0,
+      "total": "-847343.4361653794",
+      "hold": "-847343.4361653794",
+      "entryNtl": "0.0",
+      "ltv": "0.0",
+      "borrowed": "5327099.0254313899"
+    },
+    {
+      "coin": "PURR",
+      "token": 1,
+      "total": "5878151.8314399999",
+      "hold": "0.0",
+      "entryNtl": "707428.82548708"
+    },
+    {
+      "coin": "POINTS",
+      "token": 9,
+      "total": "57765.24279",
+      "hold": "0.0",
+      "entryNtl": "242.5919514"
+    },
+    {
+      "coin": "GPT",
+      "token": 35,
+      "total": "4267779.2226924999",
+      "hold": "0.0",
+      "entryNtl": "118.31965239"
+    },
+    {
+      "coin": "BRIDGE",
+      "token": 73,
+      "total": "1916852.4468952001",
+      "hold": "0.0",
+      "entryNtl": "72034.56604632"
+    },
+    {
+      "coin": "HPL",
+      "token": 120,
+      "total": "27740.5650012",
+      "hold": "0.0",
+      "entryNtl": "317.27974531"
+    },
+    {
+      "coin": "PIP",
+      "token": 127,
+      "total": "9772.5052991",
+      "hold": "0.0",
+      "entryNtl": "73101.46460316"
+    },
+    {
+      "coin": "HYPE",
+      "token": 150,
+      "total": "123085.45653588",
+      "hold": "123085.45653588",
+      "entryNtl": "0.0",
+      "ltv": "0.65",
+      "supplied": "123085.45653588"
+    },
+    {
+      "coin": "UBTC",
+      "token": 197,
+      "total": "0.000050419",
+      "hold": "0.000050419",
+      "entryNtl": "0.0",
+      "ltv": "0.5",
+      "supplied": "0.000050419"
+    },
+    {
+      "coin": "LATINA",
+      "token": 223,
+      "total": "0.0169",
+      "hold": "0.0",
+      "entryNtl": "0.00008652"
+    },
+    {
+      "coin": "USOL",
+      "token": 254,
+      "total": "0.00222369",
+      "hold": "0.0",
+      "entryNtl": "0.12972327"
+    },
+    {
+      "coin": "MAX",
+      "token": 734,
+      "total": "10600139.6870620009",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    }
+  ],
+  "portfolioMarginRatio": "0.5374035849",
+  "tokenToPortfolioBorrowRatio": [
+    [
+      0,
+      "0.1065419805"
+    ],
+    [
+      360,
+      "0.0"
+    ]
+  ],
+  "tokenToPortfolioSupplyRatio": [
+    [
+      150,
+      "0.1230854565"
+    ],
+    [
+      197,
+      "0.0000002521"
+    ]
+  ],
+  "tokenToAvailableAfterMaintenance": [
+    [
+      0,
+      "3894587.6513679898"
+    ],
+    [
+      150,
+      "71571.47865267"
+    ],
+    [
+      197,
+      "0.000050419"
+    ],
+    [
+      268,
+      "999999.99999999"
+    ],
+    [
+      360,
+      "0.0"
+    ]
+  ]
+}

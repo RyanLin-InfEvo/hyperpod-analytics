@@ -1,0 +1,42 @@
+{
+  "marginSummary": {
+    "accountValue": "1118838.418789",
+    "totalNtlPos": "8125650.0",
+    "totalRawUsd": "-7006811.5812109997",
+    "totalMarginUsed": "812565.0"
+  },
+  "crossMarginSummary": {
+    "accountValue": "1118838.418789",
+    "totalNtlPos": "8125650.0",
+    "totalRawUsd": "-7006811.5812109997",
+    "totalMarginUsed": "812565.0"
+  },
+  "crossMaintenanceMarginUsed": "406282.5",
+  "withdrawable": "306273.418789",
+  "assetPositions": [
+    {
+      "type": "oneWay",
+      "position": {
+        "coin": "ZEC",
+        "szi": "9000.0",
+        "leverage": {
+          "type": "cross",
+          "value": 10
+        },
+        "entryPx": "837.9787",
+        "positionValue": "8125650.0",
+        "unrealizedPnl": "583841.4098",
+        "returnOnEquity": "0.7741397873",
+        "liquidationPx": "753.0038995077",
+        "marginUsed": "812565.0",
+        "maxLeverage": 10,
+        "cumFunding": {
+          "allTime": "871.045065",
+          "sinceOpen": "727.53491",
+          "sinceChange": "473.581211"
+        }
+      }
+    }
+  ],
+  "time": 1794721569159
+}

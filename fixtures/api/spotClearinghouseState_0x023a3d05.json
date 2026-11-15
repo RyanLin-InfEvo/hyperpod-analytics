@@ -1,0 +1,242 @@
+{
+  "balances": [
+    {
+      "coin": "USDC",
+      "token": 0,
+      "total": "1653851.2640931101",
+      "hold": "489016.89042619",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "PURR",
+      "token": 1,
+      "total": "2589.25819",
+      "hold": "0.0",
+      "entryNtl": "434.64007704"
+    },
+    {
+      "coin": "JEFF",
+      "token": 5,
+      "total": "1.87296",
+      "hold": "0.0",
+      "entryNtl": "22.20094487"
+    },
+    {
+      "coin": "MEOW",
+      "token": 61,
+      "total": "3944.952793",
+      "hold": "0.0",
+      "entryNtl": "0.22722928"
+    },
+    {
+      "coin": "PEAR",
+      "token": 71,
+      "total": "350.128299",
+      "hold": "0.0",
+      "entryNtl": "0.03501282"
+    },
+    {
+      "coin": "NEIRO",
+      "token": 78,
+      "total": "874.175738",
+      "hold": "0.0",
+      "entryNtl": "0.08846658"
+    },
+    {
+      "coin": "BERA",
+      "token": 80,
+      "total": "136.760525",
+      "hold": "0.0",
+      "entryNtl": "0.13505101"
+    },
+    {
+      "coin": "WOW",
+      "token": 98,
+      "total": "3226.97896",
+      "hold": "0.0",
+      "entryNtl": "0.32269789"
+    },
+    {
+      "coin": "KNTQ",
+      "token": 124,
+      "total": "3657.644477",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "PIP",
+      "token": 127,
+      "total": "0.5",
+      "hold": "0.0",
+      "entryNtl": "1.41335"
+    },
+    {
+      "coin": "HYPE",
+      "token": 150,
+      "total": "7211.31347121",
+      "hold": "0.0",
+      "entryNtl": "456919.91979612"
+    },
+    {
+      "coin": "JPEG",
+      "token": 196,
+      "total": "66666.66666666",
+      "hold": "0.0",
+      "entryNtl": "994.06666666"
+    },
+    {
+      "coin": "UBTC",
+      "token": 197,
+      "total": "2.7497223909",
+      "hold": "0.0",
+      "entryNtl": "183238.45286757"
+    },
+    {
+      "coin": "HAR",
+      "token": 205,
+      "total": "2471.12543648",
+      "hold": "0.0",
+      "entryNtl": "0.02471125"
+    },
+    {
+      "coin": "UETH",
+      "token": 221,
+      "total": "72.187970167",
+      "hold": "0.0",
+      "entryNtl": "137295.38511547"
+    },
+    {
+      "coin": "LATINA",
+      "token": 223,
+      "total": "145132.0162",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    },
+    {
+      "coin": "USDE",
+      "token": 235,
+      "total": "2599.73899688",
+      "hold": "0.0",
+      "entryNtl": "2594.11140945"
+    },
+    {
+      "coin": "WMNT",
+      "token": 246,
+      "total": "94276.61476536",
+      "hold": "1361.81",
+      "entryNtl": "56200.36914614"
+    },
+    {
+      "coin": "RAT",
+      "token": 253,
+      "total": "30.555941",
+      "hold": "0.0",
+      "entryNtl": "0.65582216"
+    },
+    {
+      "coin": "USOL",
+      "token": 254,
+      "total": "27.19666878",
+      "hold": "0.0",
+      "entryNtl": "1940.28484609"
+    },
+    {
+      "coin": "USDT0",
+      "token": 268,
+      "total": "1185.0306359",
+      "hold": "0.0",
+      "entryNtl": "1183.67688968"
+    },
+    {
+      "coin": "UFART",
+      "token": 269,
+      "total": "162471.12654",
+      "hold": "0.0",
+      "entryNtl": "14575.95682498"
+    },
+    {
+      "coin": "UPUMP",
+      "token": 299,
+      "total": "1971878.7952399999",
+      "hold": "1070420.0",
+      "entryNtl": "5718.87736274"
+    },
+    {
+      "coin": "LICKO",
+      "token": 307,
+      "total": "228.49324559",
+      "hold": "0.0",
+      "entryNtl": "0.00137095"
+    },
+    {
+      "coin": "HREKT",
+      "token": 317,
+      "total": "424990076126.3118286133",
+      "hold": "23193027528.0",
+      "entryNtl": "40132.97664624"
+    },
+    {
+      "coin": "UBONK",
+      "token": 320,
+      "total": "13512255.9956100006",
+      "hold": "0.0",
+      "entryNtl": "48.43631133"
+    },
+    {
+      "coin": "VSN",
+      "token": 325,
+      "total": "0.00000459",
+      "hold": "0.0",
+      "entryNtl": "0.00000022"
+    },
+    {
+      "coin": "UENA",
+      "token": 338,
+      "total": "186766.674851",
+      "hold": "0.0",
+      "entryNtl": "21903.81460892"
+    },
+    {
+      "coin": "UXPL",
+      "token": 343,
+      "total": "2268.764569",
+      "hold": "0.0",
+      "entryNtl": "98.8505252"
+    },
+    {
+      "coin": "UDZ",
+      "token": 361,
+      "total": "614070.41697983",
+      "hold": "457064.47",
+      "entryNtl": "31347.76112663"
+    },
+    {
+      "coin": "FXRP",
+      "token": 367,
+      "total": "620596.22126",
+      "hold": "441440.6",
+      "entryNtl": "776279.28394528"
+    },
+    {
+      "coin": "UMON",
+      "token": 383,
+      "total": "1565051.9588820001",
+      "hold": "0.0",
+      "entryNtl": "38249.20892946"
+    },
+    {
+      "coin": "STABLE",
+      "token": 398,
+      "total": "131343.5211244",
+      "hold": "10592.81",
+      "entryNtl": "3363.98726857"
+    },
+    {
+      "coin": "UZEC",
+      "token": 419,
+      "total": "372.225883182",
+      "hold": "0.0",
+      "entryNtl": "331309.87622714"
+    }
+  ]
+}

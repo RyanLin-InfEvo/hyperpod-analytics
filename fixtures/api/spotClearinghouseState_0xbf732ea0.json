@@ -1,0 +1,89 @@
+{
+  "portfolioMarginEnabled": true,
+  "balances": [
+    {
+      "coin": "USDC",
+      "token": 0,
+      "total": "1687466.6593072",
+      "hold": "812565.0",
+      "entryNtl": "0.0",
+      "ltv": "0.0",
+      "supplied": "568628.2405182"
+    },
+    {
+      "coin": "MUNCH",
+      "token": 146,
+      "total": "7.43118",
+      "hold": "0.0",
+      "entryNtl": "0.00002749"
+    },
+    {
+      "coin": "HYPE",
+      "token": 150,
+      "total": "0.00000006",
+      "hold": "0.0",
+      "entryNtl": "0.00000468",
+      "ltv": "0.65"
+    },
+    {
+      "coin": "STAR",
+      "token": 154,
+      "total": "0.01435139",
+      "hold": "0.0",
+      "entryNtl": "0.00000143"
+    },
+    {
+      "coin": "LICKO",
+      "token": 307,
+      "total": "220.32122253",
+      "hold": "0.0",
+      "entryNtl": "0.00132192"
+    },
+    {
+      "coin": "MAX",
+      "token": 734,
+      "total": "6923.026638",
+      "hold": "0.0",
+      "entryNtl": "0.0"
+    }
+  ],
+  "portfolioMarginRatio": "0.2407647569",
+  "tokenToPortfolioBorrowRatio": [
+    [
+      0,
+      "0.0"
+    ]
+  ],
+  "tokenToPortfolioSupplyRatio": [
+    [
+      150,
+      "0.0"
+    ],
+    [
+      197,
+      "0.0"
+    ]
+  ],
+  "tokenToAvailableAfterMaintenance": [
+    [
+      0,
+      "1281184.1593072"
+    ],
+    [
+      150,
+      "0.00000006"
+    ],
+    [
+      197,
+      "0.0"
+    ],
+    [
+      268,
+      "0.0"
+    ],
+    [
+      360,
+      "0.0"
+    ]
+  ]
+}

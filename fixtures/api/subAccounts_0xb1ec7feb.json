@@ -1,0 +1,28 @@
+[
+  {
+    "name": "1",
+    "subAccountUser": "0x3d922e2e412c8c8f509f7aa1b5502c97520823ca",
+    "master": "0xb1ec7febea4f841d525785955b7fe0e812d6e86a",
+    "clearinghouseState": {
+      "marginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMarginSummary": {
+        "accountValue": "0.0",
+        "totalNtlPos": "0.0",
+        "totalRawUsd": "0.0",
+        "totalMarginUsed": "0.0"
+      },
+      "crossMaintenanceMarginUsed": "0.0",
+      "withdrawable": "0.0",
+      "assetPositions": [],
+      "time": 1794721572223
+    },
+    "spotState": {
+      "balances": []
+    }
+  }
+]
