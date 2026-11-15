@@ -1,0 +1,313 @@
+# SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Single-source pipeline configuration.
+# Every tunable parameter MUST declare non-empty `label` and `description` metadata.
+
+schemaVersion: 1
+
+scope:
+  perpDex:
+    value: main
+    label: Perp DEX scope
+    description: Only track the main Hyperliquid perpetual DEX (exclude HIP-3 builder DEXes).
+  spot:
+    value: false
+    label: Include spot markets
+    description: Whether spot markets are tracked directly (must remain false for v1 main-perp scope).
+  hip3:
+    value: false
+    label: Include HIP-3 DEXes
+    description: Whether HIP-3 builder-deployed perpetual DEXes are included (false for v1).
+
+coins:
+  pinned:
+    value:
+      - BTC
+      - ETH
+      - SOL
+      - HYPE
+    label: Pinned coins
+    description: Always-tracked main perpetual markets regardless of notional open interest rank.
+  dynamicTopN:
+    value: 20
+    label: Dynamic top N coins
+    description: Number of top non-pinned main-perp coins ranked daily by aggregate whitelist notional OI.
+  stickyDays:
+    value: 30
+    label: Dynamic coin sticky days
+    description: Days a dynamic coin remains tracked after falling outside the top N ranking.
+  maxTracked:
+    value: 32
+    label: Max tracked coins
+    description: Hard cap on simultaneous tracked coins including pinned and sticky-window coins.
+
+stage1:
+  minAccountValue:
+    value: 1000000.0
+    op: ">="
+    unit: USD
+    label: Min account value
+    description: Minimum account equity in USD required from leaderboard or subaccount evaluation to enter Stage 2.
+  minPnlAllTime:
+    value: 0.0
+    op: ">"
+    unit: USD
+    label: Min all-time PnL
+    description: Leaderboard all-time PnL must be strictly positive (> 0 USD).
+  minPnlMonthRatio:
+    value: -0.2
+    op: ">"
+    unit: ratio
+    label: Min monthly PnL / AV ratio
+    description: Leaderboard monthly PnL divided by accountValue must exceed -0.20.
+  maxTurnoverMonth:
+    value: 150.0
+    op: "<="
+    unit: x
+    label: Max monthly turnover
+    description: Maximum leaderboard monthly volume divided by accountValue to pre-exclude market makers.
+
+gates:
+  excludeRoles:
+    value:
+      - vault
+      - agent
+      - missing
+    op: not_in
+    unit: role
+    label: Excluded account roles
+    description: Hyperliquid userRole values rejected immediately before calling additional Stage 2 endpoints.
+  hft:
+    fillsPerDay:
+      value: 500.0
+      op: "<="
+      unit: count
+      label: Max fills per day
+      description: Maximum average aggregated (aggregateByTime=true) main-perp fills per active UTC day over the last 30 days.
+    medianHoldMinutes:
+      value: 5.0
+      op: ">="
+      unit: minutes
+      label: Min median hold duration
+      description: Minimum median holding duration in minutes across completed main-perp round-trip trades.
+    minTruncatedSpanDays:
+      value: 7.0
+      op: ">="
+      unit: days
+      label: Min 10k-fill span days
+      description: Minimum day span covered when userFillsByTime hits the 10,000-fill rolling cap.
+  mm:
+    makerRatio:
+      value: 0.9
+      op: "<="
+      unit: ratio
+      label: Max MM maker ratio
+      description: Maker fill ratio paired with mm.turnoverMonth to exclude high-turnover market makers.
+    turnoverMonth:
+      value: 30.0
+      op: "<="
+      unit: x
+      label: Max MM monthly turnover
+      description: Monthly turnover threshold paired with mm.makerRatio to exclude market makers.
+  funding:
+    maxShare:
+      value: 0.5
+      op: "<="
+      unit: ratio
+      label: Max funding PnL share
+      description: Maximum ratio of |net main-perp userFunding| to max(|pnlAllTime|, 1.0).
+  hedge:
+    maxRatio:
+      value: 0.8
+      op: "<="
+      unit: ratio
+      label: Max spot-perp hedge ratio
+      description: Maximum notional-weighted spot token coverage ratio across open perp short positions.
+  passive:
+    minRecentTrades90d:
+      value: 5
+      op: ">="
+      unit: count
+      label: Min trades in 90 days
+      description: Minimum completed main-perp round-trip trades closed within the last 90 UTC days.
+  sample:
+    minTrades:
+      value: 20
+      op: ">="
+      unit: count
+      label: Min total trades
+      description: Minimum completed main-perp round-trip trades required for statistical validity.
+    minHistoryDays:
+      value: 30.0
+      op: ">="
+      unit: days
+      label: Min history days
+      description: Minimum elapsed calendar days since the earliest available main-perp fill.
+  mdd:
+    maxDrawdown:
+      value: 0.45
+      op: "<="
+      unit: ratio
+      label: Max drawdown
+      description: Maximum peak-to-trough perpAllTime PnL drawdown relative to peak accountValue.
+  pf:
+    minRobust:
+      value: 1.5
+      op: ">="
+      unit: ratio
+      label: Min robust profit factor
+      description: Minimum profit factor after removing the single largest winning trade (null/zero-loss passes).
+  lucky:
+    maxTopWinShare:
+      value: 0.5
+      op: "<="
+      unit: ratio
+      label: Max top win share
+      description: Maximum share of total gross winning PnL attributable to a single trade.
+
+scoring:
+  fillsWindowDays:
+    value: 30
+    label: Fills stats window days
+    description: Rolling UTC day window used when computing fillsPerDay and makerRatio.
+  passiveWindowDays:
+    value: 90
+    label: Passive check window days
+    description: Rolling UTC day window used when evaluating passive.minRecentTrades90d.
+  subAccountRefreshDays:
+    value: 7
+    label: Subaccount refresh interval days
+    description: Days between refreshing subAccounts() API calls for role=user candidates.
+  weights:
+    profitFactorRobust:
+      value: 0.25
+      label: Robust PF score weight
+      description: Percentile weight assigned to profitFactorRobust in the composite display score.
+    roiAllTime:
+      value: 0.20
+      label: All-time ROI score weight
+      description: Percentile weight assigned to roiAllTime in the composite display score.
+    invMaxDrawdown:
+      value: 0.20
+      label: Low drawdown score weight
+      description: Percentile weight assigned to (1 - maxDrawdown) in the composite display score.
+    monthlyReturn:
+      value: 0.15
+      label: Monthly return score weight
+      description: Percentile weight assigned to pnlMonth / accountValue in the composite display score.
+    winRate:
+      value: 0.10
+      label: Win rate score weight
+      description: Percentile weight assigned to winRate in the composite display score.
+    logAccountValue:
+      value: 0.10
+      label: Account size score weight
+      description: Percentile weight assigned to log(max(accountValue, 1)) in the composite display score.
+
+membership:
+  exitAfterFailedDays:
+    value: 3
+    label: Exit after failed days
+    description: Consecutive daily gate failures required before removing an active whitelist member.
+  subaccounts:
+    value: merge_after_filter
+    label: Subaccount handling mode
+    description: Filter subaccounts independently in Stage 2 and merge passing members by master ?? address in frontend.
+  excludeVaults:
+    value: true
+    label: Exclude vaults
+    description: Always exclude Hyperliquid protocol/user vaults from whitelist eligibility.
+  safetyCapWarning:
+    value: 600
+    label: Active whitelist warning cap
+    description: Emit pipeline warning when active whitelist size exceeds this technical threshold without truncating.
+
+ratelimit:
+  ciBudgetPerMin:
+    value: 800
+    label: CI API weight budget/min
+    description: Token-bucket rate limit weight budget per minute on shared GitHub Actions runners.
+  localBudgetPerMin:
+    value: 1000
+    label: Local API weight budget/min
+    description: Token-bucket rate limit weight budget per minute during local hyperpod bootstrap runs.
+  maxConcurrency:
+    value: 4
+    label: Max concurrent HTTP requests
+    description: Maximum simultaneous in-flight Hyperliquid Info API requests.
+  maxRetries:
+    value: 6
+    label: Max 429/5xx retries
+    description: Maximum exponential backoff retry attempts on HTTP 429 or 5xx responses.
+  halveCooldownSeconds:
+    value: 300
+    label: 429 throttle cooldown seconds
+    description: Seconds to halve effective API weight budget after consecutive HTTP 429 responses.
+  fillOverlapMs:
+    value: 60000
+    label: Fill pagination overlap ms
+    description: Inclusive lookback overlap window in milliseconds for userFillsByTime boundary deduplication.
+
+snapshot:
+  intervalSeconds:
+    value: 600
+    label: Fast snapshot interval seconds
+    description: Target interval in seconds between fast loop position snapshots (10 minutes).
+  maxFailedAddressRatio:
+    value: 0.20
+    label: Max fast loop failure ratio
+    description: Abort fast publish without pushing if more than this fraction of active addresses fail.
+  staleWarnStreak:
+    value: 3
+    label: Stale warning streak
+    description: Consecutive snapshot fetch failures per address before emitting a manifest warning.
+  reconstructDays:
+    value: 365
+    label: Bootstrap reconstruct days
+    description: Number of historical days reconstructed prior to launchedAt during initial bootstrap.
+  reconstruct1hDays:
+    value: 208
+    label: 1h reconstruction cutoff days
+    description: Days prior to launchedAt reconstructed at 1h candle resolution before falling back to 4h.
+  hotRetentionDays:
+    value: 7
+    label: Daily uncompressed retention days
+    description: Recent UTC days kept as uncompressed days/*.json before verified monthly gzip compaction.
+  softLimitBytes:
+    value: 800000000
+    label: Disk storage warning threshold
+    description: Total gh-pages/data/ byte size threshold for emitting non-destructive storage warnings.
+
+stateRetention:
+  fillStatsRetentionDays:
+    value: 90
+    label: Candidate fillStats retention days
+    description: UTC days of daily fillStats retained in internal state/daily/addresses/ shards.
+  pruneAbsentNonWhitelistDays:
+    value: 90
+    label: Prune absent non-whitelist days
+    description: Prune non-whitelisted, non-seed candidate records after >90 consecutive days absent from Stage 1.
+  runsLogMaxEntries:
+    value: 500
+    label: Max runs.jsonl entries
+    description: Maximum execution log entries retained in fast/runs.jsonl and daily/runs.jsonl.
+
+frontendDefaults:
+  dustRatio:
+    value: 0.05
+    label: Default dust percentage
+    description: Default entity position value / account value dust threshold (5%).
+  minNotionalUsd:
+    value: 10000.0
+    label: Default min notional USD
+    description: Default minimum entity position notional value filter in USD.
+  frvpDefaultBins:
+    value: 60
+    label: Default FRVP bins
+    description: Default number of horizontal price bins for the FRVP profile (valid range 20-200).
+  exposureLookbackToleranceMinutes:
+    value: 15
+    label: Exposure #5 lookback tolerance
+    description: Maximum timestamp matching tolerance in minutes for t0 = now - delta snapshots.

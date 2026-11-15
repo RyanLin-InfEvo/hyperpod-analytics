@@ -12,4 +12,7 @@ pkgs.mkShell {
     pkgs."check-jsonschema"
     pkgs.flutter
   ];
+  shellHook = ''
+    unset PYTHONPATH
+  '';
 }
