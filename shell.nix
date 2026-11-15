@@ -11,8 +11,13 @@ pkgs.mkShell {
     pkgs.ruff
     pkgs."check-jsonschema"
     pkgs.flutter
+    pkgs.chromium
   ];
+
+  CHROME_EXECUTABLE = "${pkgs.chromium}/bin/chromium";
+
   shellHook = ''
     unset PYTHONPATH
+    export CHROME_EXECUTABLE="${pkgs.chromium}/bin/chromium"
   '';
 }

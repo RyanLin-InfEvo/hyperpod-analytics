@@ -23,6 +23,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - `6f78dd3` — Task 1.6: `scripts/validate_schemas.sh` & `.github/workflows/ci.yml` (`schemas`, `python`, `flutter` CI jobs verified in `nix-shell`)
 - `2352b57` — `docs(status): record exact commit hashes through Task 1.6`
 - `cd3f401` — `fix(contracts): resolve Phase 1 adversarial audit findings across schemas, models, and fixtures` (remediated `2 MAJOR`, `2 MINOR`; secondary audit `PASS`)
+- `624008d` — `docs(phase-1): add Phase 1 gate report and set status to WAITING_USER_REVIEW`
+- [`flutter.sh`](../flutter.sh) + Chromium (`CHROME_EXECUTABLE`) in [`shell.nix`](../shell.nix) — NixOS Flutter CLI/Chrome wrapper (`./flutter.sh --version`, `./flutter.sh test`, `./flutter.sh devices` verified)
 - Phase 1 Gate Report: [`docs/phase-reports/phase-1.md`](phase-reports/phase-1.md)
 
 ## Active Background Jobs
