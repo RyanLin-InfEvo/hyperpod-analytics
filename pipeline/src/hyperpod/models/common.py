@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import math
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
@@ -25,6 +25,18 @@ def _validate_non_zero_number(value: object) -> float:
     if fval == 0.0:
         raise ValueError("value must be non-zero")
     return fval
+
+
+def _require_strict_int(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("expected strict integer, got boolean or non-integer")
+    return value
+
+
+def _require_strict_bool(value: object) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError("expected strict boolean")
+    return value
 
 
 class ContractModel(BaseModel):
@@ -47,3 +59,19 @@ DateStr = Annotated[str, Field(strict=True, pattern=r"^\d{4}-\d{2}-\d{2}$")]
 MonthStr = Annotated[str, Field(strict=True, pattern=r"^\d{4}-\d{2}$")]
 EvmAddress = Annotated[str, Field(strict=True, pattern=r"^0x[a-fA-F0-9]{40}$")]
 Sha256Ref = Annotated[str, Field(strict=True, pattern=r"^sha256:[a-f0-9]+$")]
+
+SchemaVersion = Annotated[Literal[1], BeforeValidator(_require_strict_int)]
+LiqFlag = Annotated[Literal[0, 1], BeforeValidator(_require_strict_int)]
+StrictFalse = Annotated[Literal[False], BeforeValidator(_require_strict_bool)]
+RejectReason = Literal[
+    "role",
+    "hft",
+    "mm",
+    "funding",
+    "hedge",
+    "passive",
+    "sample",
+    "mdd",
+    "pf",
+    "lucky",
+]

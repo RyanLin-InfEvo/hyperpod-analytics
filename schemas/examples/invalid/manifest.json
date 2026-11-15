@@ -5,7 +5,14 @@
   "launchedAt": 1761955200000,
   "whitelistVersion": "2026-11-05",
   "criteriaVersion": 2,
-  "coins": [],
+  "coins": [
+    {
+      "coin": "BTC",
+      "pinned": true,
+      "trackedFrom": 1761523200000,
+      "trackedTo": null
+    }
+  ],
   "files": {
     "snapshotDays": ["2026-10-30"],
     "snapshotMonths": [],

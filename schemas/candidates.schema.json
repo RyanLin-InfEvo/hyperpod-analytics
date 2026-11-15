@@ -108,6 +108,28 @@
             "minimum": 0,
             "maximum": 1
           }
+        },
+        "if": {
+          "properties": {
+            "passed": {
+              "const": true
+            }
+          },
+          "required": ["passed"]
+        },
+        "then": {
+          "properties": {
+            "rejectReasons": {
+              "maxItems": 0
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "rejectReasons": {
+              "minItems": 1
+            }
+          }
         }
       }
     }

@@ -16,6 +16,7 @@ from hyperpod.models.common import (
     NonNegInt,
     NonZeroNumber,
     PosNumber,
+    SchemaVersion,
 )
 
 MarkResolution = Literal["5m", "10m", "1h", "4h", "mixed"]
@@ -59,7 +60,7 @@ class SnapshotSeries(ContractModel):
 
 
 class Snapshot(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     coins: Annotated[list[NonEmptyStr], Field(min_length=1)]
     reconstructed: StrictBool | None = None
     reconstructedBefore: NonNegInt | None = None
@@ -74,11 +75,16 @@ class Snapshot(ContractModel):
     def _check_coin_dim(self) -> Snapshot:
         if len(self.series.mark) != len(self.coins):
             raise ValueError("len(series.mark) must equal len(coins)")
+        for _, from_ts, to_ts in self.tracked:
+            if to_ts is not None and to_ts < from_ts:
+                raise ValueError("tracked toTs must be >= fromTs")
         n_coins = len(self.coins)
         for _, coin_idx, _, _ in self.keyframe.pos:
             if coin_idx >= n_coins:
                 raise ValueError(f"keyframe coinIdx {coin_idx} out of bounds for {n_coins} coins")
-        for _, _, coin_idx, _, _ in self.posChanges:
+        for _, _, coin_idx, szi, entry_px in self.posChanges:
             if coin_idx >= n_coins:
                 raise ValueError(f"posChanges coinIdx {coin_idx} out of bounds for {n_coins} coins")
+            if szi == 0.0 and entry_px is not None:
+                raise ValueError("posChanges entryPx must be null when szi == 0")
         return self

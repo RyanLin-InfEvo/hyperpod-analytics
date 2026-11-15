@@ -6,13 +6,37 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Protocol
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
+
+from hyperpod.models.common import (
+    JsonNumber,
+    NonEmptyStr,
+    NonNegInt,
+    NonNegNumber,
+    PosInt,
+    PosNumber,
+    SchemaVersion,
+    StrictFalse,
+    UnitInterval,
+    _validate_json_number,
+)
 
 RuleOp = Literal["<", "<=", ">", ">=", "==", "!=", "not_in"]
 SubaccountMode = Literal["independent", "merge_after_filter", "merge_before_filter"]
+PosUnitFraction = Annotated[float, BeforeValidator(_validate_json_number), Field(gt=0.0, le=1.0)]
+DustFraction = Annotated[float, BeforeValidator(_validate_json_number), Field(ge=0.0, le=0.5)]
 
 
 def default_config_path() -> Path:
@@ -28,8 +52,8 @@ class ParamSpec[T](_StrictModel):
     """Single configurable parameter carrying mandatory human-readable metadata."""
 
     value: T
-    label: str
-    description: str
+    label: StrictStr
+    description: StrictStr
 
     @field_validator("label", "description")
     @classmethod
@@ -43,7 +67,7 @@ class GateParamSpec[T](ParamSpec[T]):
     """Stage 1 or hard-gate parameter exported to criteria.json."""
 
     op: RuleOp
-    unit: str
+    unit: StrictStr
 
     @field_validator("unit")
     @classmethod
@@ -52,18 +76,29 @@ class GateParamSpec[T](ParamSpec[T]):
             raise ValueError("unit must be a non-empty string")
         return v
 
+    def to_rule(self, key: str) -> dict[str, object]:
+        """Serialize this gate parameter as a criteria.json ruleItem dictionary."""
+        return {
+            "key": key,
+            "label": self.label,
+            "op": self.op,
+            "value": self.value,
+            "unit": self.unit,
+            "description": self.description,
+        }
+
 
 class ScopeConfig(_StrictModel):
     perpDex: ParamSpec[Literal["main"]]
-    spot: ParamSpec[Literal[False]]
-    hip3: ParamSpec[Literal[False]]
+    spot: ParamSpec[StrictFalse]
+    hip3: ParamSpec[StrictFalse]
 
 
 class CoinsConfig(_StrictModel):
-    pinned: ParamSpec[list[Annotated[str, Field(min_length=1)]]]
-    dynamicTopN: ParamSpec[Annotated[int, Field(strict=True, ge=0)]]
-    stickyDays: ParamSpec[Annotated[int, Field(strict=True, ge=0)]]
-    maxTracked: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
+    pinned: ParamSpec[list[NonEmptyStr]]
+    dynamicTopN: ParamSpec[NonNegInt]
+    stickyDays: ParamSpec[NonNegInt]
+    maxTracked: ParamSpec[PosInt]
 
     @model_validator(mode="after")
     def _check_max_tracked(self) -> CoinsConfig:
@@ -73,54 +108,54 @@ class CoinsConfig(_StrictModel):
 
 
 class Stage1Config(_StrictModel):
-    minAccountValue: GateParamSpec[Annotated[float, Field(ge=0.0)]]
-    minPnlAllTime: GateParamSpec[float]
-    minPnlMonthRatio: GateParamSpec[float]
-    maxTurnoverMonth: GateParamSpec[Annotated[float, Field(gt=0.0)]]
+    minAccountValue: GateParamSpec[NonNegNumber]
+    minPnlAllTime: GateParamSpec[JsonNumber]
+    minPnlMonthRatio: GateParamSpec[JsonNumber]
+    maxTurnoverMonth: GateParamSpec[PosNumber]
 
 
 class HftGateConfig(_StrictModel):
-    fillsPerDay: GateParamSpec[Annotated[float, Field(gt=0.0)]]
-    medianHoldMinutes: GateParamSpec[Annotated[float, Field(ge=0.0)]]
-    minTruncatedSpanDays: GateParamSpec[Annotated[float, Field(ge=0.0)]]
+    fillsPerDay: GateParamSpec[PosNumber]
+    medianHoldMinutes: GateParamSpec[NonNegNumber]
+    minTruncatedSpanDays: GateParamSpec[NonNegNumber]
 
 
 class MmGateConfig(_StrictModel):
-    makerRatio: GateParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
-    turnoverMonth: GateParamSpec[Annotated[float, Field(ge=0.0)]]
+    makerRatio: GateParamSpec[UnitInterval]
+    turnoverMonth: GateParamSpec[NonNegNumber]
 
 
 class FundingGateConfig(_StrictModel):
-    maxShare: GateParamSpec[Annotated[float, Field(ge=0.0)]]
+    maxShare: GateParamSpec[NonNegNumber]
 
 
 class HedgeGateConfig(_StrictModel):
-    maxRatio: GateParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
+    maxRatio: GateParamSpec[UnitInterval]
 
 
 class PassiveGateConfig(_StrictModel):
-    minRecentTrades90d: GateParamSpec[Annotated[int, Field(strict=True, ge=0)]]
+    minRecentTrades90d: GateParamSpec[NonNegInt]
 
 
 class SampleGateConfig(_StrictModel):
-    minTrades: GateParamSpec[Annotated[int, Field(strict=True, ge=0)]]
-    minHistoryDays: GateParamSpec[Annotated[float, Field(ge=0.0)]]
+    minTrades: GateParamSpec[NonNegInt]
+    minHistoryDays: GateParamSpec[NonNegNumber]
 
 
 class MddGateConfig(_StrictModel):
-    maxDrawdown: GateParamSpec[Annotated[float, Field(ge=0.0)]]
+    maxDrawdown: GateParamSpec[NonNegNumber]
 
 
 class PfGateConfig(_StrictModel):
-    minRobust: GateParamSpec[Annotated[float, Field(ge=0.0)]]
+    minRobust: GateParamSpec[NonNegNumber]
 
 
 class LuckyGateConfig(_StrictModel):
-    maxTopWinShare: GateParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
+    maxTopWinShare: GateParamSpec[UnitInterval]
 
 
 class GatesConfig(_StrictModel):
-    excludeRoles: GateParamSpec[list[Annotated[str, Field(min_length=1)]]]
+    excludeRoles: GateParamSpec[Annotated[list[NonEmptyStr], Field(min_length=1)]]
     hft: HftGateConfig
     mm: MmGateConfig
     funding: FundingGateConfig
@@ -133,12 +168,12 @@ class GatesConfig(_StrictModel):
 
 
 class ScoringWeightsConfig(_StrictModel):
-    profitFactorRobust: ParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
-    roiAllTime: ParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
-    invMaxDrawdown: ParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
-    monthlyReturn: ParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
-    winRate: ParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
-    logAccountValue: ParamSpec[Annotated[float, Field(ge=0.0, le=1.0)]]
+    profitFactorRobust: ParamSpec[UnitInterval]
+    roiAllTime: ParamSpec[UnitInterval]
+    invMaxDrawdown: ParamSpec[UnitInterval]
+    monthlyReturn: ParamSpec[UnitInterval]
+    winRate: ParamSpec[UnitInterval]
+    logAccountValue: ParamSpec[UnitInterval]
 
     @model_validator(mode="after")
     def _weights_sum_to_one(self) -> ScoringWeightsConfig:
@@ -156,55 +191,65 @@ class ScoringWeightsConfig(_StrictModel):
 
 
 class ScoringConfig(_StrictModel):
-    fillsWindowDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    passiveWindowDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    subAccountRefreshDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
+    fillsWindowDays: ParamSpec[PosInt]
+    passiveWindowDays: ParamSpec[PosInt]
+    subAccountRefreshDays: ParamSpec[PosInt]
     weights: ScoringWeightsConfig
 
 
 class MembershipConfig(_StrictModel):
-    exitAfterFailedDays: ParamSpec[Annotated[int, Field(strict=True, ge=0)]]
+    exitAfterFailedDays: ParamSpec[NonNegInt]
     subaccounts: ParamSpec[SubaccountMode]
     excludeVaults: ParamSpec[StrictBool]
-    safetyCapWarning: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
+    safetyCapWarning: ParamSpec[PosInt]
 
 
 class RateLimitConfig(_StrictModel):
     ciBudgetPerMin: ParamSpec[Annotated[int, Field(strict=True, ge=1, le=1200)]]
     localBudgetPerMin: ParamSpec[Annotated[int, Field(strict=True, ge=1, le=1200)]]
-    maxConcurrency: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    maxRetries: ParamSpec[Annotated[int, Field(strict=True, ge=0)]]
-    halveCooldownSeconds: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    fillOverlapMs: ParamSpec[Annotated[int, Field(strict=True, ge=0)]]
+    maxConcurrency: ParamSpec[PosInt]
+    maxRetries: ParamSpec[NonNegInt]
+    halveCooldownSeconds: ParamSpec[PosInt]
+    fillOverlapMs: ParamSpec[NonNegInt]
 
 
 class SnapshotConfig(_StrictModel):
     intervalSeconds: ParamSpec[Annotated[int, Field(strict=True, ge=60)]]
-    maxFailedAddressRatio: ParamSpec[Annotated[float, Field(gt=0.0, le=1.0)]]
-    staleWarnStreak: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    reconstructDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    reconstruct1hDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    hotRetentionDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    softLimitBytes: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
+    maxFailedAddressRatio: ParamSpec[PosUnitFraction]
+    staleWarnStreak: ParamSpec[PosInt]
+    reconstructDays: ParamSpec[PosInt]
+    reconstruct1hDays: ParamSpec[PosInt]
+    hotRetentionDays: ParamSpec[PosInt]
+    softLimitBytes: ParamSpec[PosInt]
+
+    @model_validator(mode="after")
+    def _check_reconstruction_windows(self) -> SnapshotConfig:
+        if self.reconstruct1hDays.value > self.reconstructDays.value:
+            raise ValueError("snapshot.reconstruct1hDays must be <= snapshot.reconstructDays")
+        return self
 
 
 class StateRetentionConfig(_StrictModel):
-    fillStatsRetentionDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    pruneAbsentNonWhitelistDays: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
-    runsLogMaxEntries: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
+    fillStatsRetentionDays: ParamSpec[PosInt]
+    pruneAbsentNonWhitelistDays: ParamSpec[PosInt]
+    runsLogMaxEntries: ParamSpec[PosInt]
 
 
 class FrontendDefaultsConfig(_StrictModel):
-    dustRatio: ParamSpec[Annotated[float, Field(ge=0.0, le=0.5)]]
-    minNotionalUsd: ParamSpec[Annotated[float, Field(ge=0.0)]]
+    dustRatio: ParamSpec[DustFraction]
+    minNotionalUsd: ParamSpec[NonNegNumber]
     frvpDefaultBins: ParamSpec[Annotated[int, Field(strict=True, ge=20, le=200)]]
-    exposureLookbackToleranceMinutes: ParamSpec[Annotated[int, Field(strict=True, ge=1)]]
+    exposureLookbackToleranceMinutes: ParamSpec[PosInt]
+
+
+class _RuleExportable(Protocol):
+    def to_rule(self, key: str) -> dict[str, object]: ...
 
 
 class PipelineConfig(_StrictModel):
     """Top-level configuration parsed from config/pipeline.yaml."""
 
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     scope: ScopeConfig
     coins: CoinsConfig
     stage1: Stage1Config
@@ -215,6 +260,36 @@ class PipelineConfig(_StrictModel):
     snapshot: SnapshotConfig
     stateRetention: StateRetentionConfig
     frontendDefaults: FrontendDefaultsConfig
+
+    def export_stage1_rules(self) -> list[dict[str, object]]:
+        """Export all Stage 1 filtering rules in criteria.json ruleItem format."""
+        specs: list[tuple[str, _RuleExportable]] = [
+            ("minAccountValue", self.stage1.minAccountValue),
+            ("minPnlAllTime", self.stage1.minPnlAllTime),
+            ("minPnlMonthRatio", self.stage1.minPnlMonthRatio),
+            ("maxTurnoverMonth", self.stage1.maxTurnoverMonth),
+        ]
+        return [spec.to_rule(key) for key, spec in specs]
+
+    def export_gate_rules(self) -> list[dict[str, object]]:
+        """Export all Stage 2 hard-gate rules in criteria.json ruleItem format."""
+        specs: list[tuple[str, _RuleExportable]] = [
+            ("excludeRoles", self.gates.excludeRoles),
+            ("hft.fillsPerDay", self.gates.hft.fillsPerDay),
+            ("hft.medianHoldMinutes", self.gates.hft.medianHoldMinutes),
+            ("hft.minTruncatedSpanDays", self.gates.hft.minTruncatedSpanDays),
+            ("mm.makerRatio", self.gates.mm.makerRatio),
+            ("mm.turnoverMonth", self.gates.mm.turnoverMonth),
+            ("funding.maxShare", self.gates.funding.maxShare),
+            ("hedge.maxRatio", self.gates.hedge.maxRatio),
+            ("passive.minRecentTrades90d", self.gates.passive.minRecentTrades90d),
+            ("sample.minTrades", self.gates.sample.minTrades),
+            ("sample.minHistoryDays", self.gates.sample.minHistoryDays),
+            ("mdd.maxDrawdown", self.gates.mdd.maxDrawdown),
+            ("pf.minRobust", self.gates.pf.minRobust),
+            ("lucky.maxTopWinShare", self.gates.lucky.maxTopWinShare),
+        ]
+        return [spec.to_rule(key) for key, spec in specs]
 
 
 def load_config(path: Path | None = None) -> PipelineConfig:

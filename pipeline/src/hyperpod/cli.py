@@ -37,6 +37,83 @@ def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _assert_unique_matching_names(label: str, expected: list[str], actual: set[str]) -> None:
+    if len(expected) != len(set(expected)):
+        raise ValueError(f"Duplicate entries in manifest for {label}: {expected}")
+    if set(expected) != actual:
+        raise ValueError(
+            f"Manifest mismatch for {label}: "
+            f"expected {sorted(expected)}, found {sorted(actual)} on disk"
+        )
+
+
+def _verify_manifest_matches_disk(data_dir: Path, manifest: Manifest) -> None:
+    snap_days = {p.stem for p in (data_dir / "snapshots" / "days").glob("*.json")}
+    snap_months = {
+        p.name.removesuffix(".json.gz")
+        for p in (data_dir / "snapshots" / "months").glob("*.json.gz")
+    }
+    _assert_unique_matching_names("files.snapshotDays", manifest.files.snapshotDays, snap_days)
+    _assert_unique_matching_names(
+        "files.snapshotMonths", manifest.files.snapshotMonths, snap_months
+    )
+
+    fills_root = data_dir / "fills"
+    disk_fill_coins = (
+        {p.name for p in fills_root.iterdir() if p.is_dir()} if fills_root.exists() else set()
+    )
+    if set(manifest.files.fills.keys()) != disk_fill_coins:
+        raise ValueError(
+            f"Manifest fills coins mismatch: manifest={sorted(manifest.files.fills)}, "
+            f"disk={sorted(disk_fill_coins)}"
+        )
+    for coin, fill_files in manifest.files.fills.items():
+        coin_dir = fills_root / coin
+        actual_days = {p.stem for p in (coin_dir / "days").glob("*.json")}
+        actual_months = {
+            p.name.removesuffix(".json.gz") for p in (coin_dir / "months").glob("*.json.gz")
+        }
+        _assert_unique_matching_names(f"files.fills.{coin}.days", fill_files.days, actual_days)
+        _assert_unique_matching_names(
+            f"files.fills.{coin}.months", fill_files.months, actual_months
+        )
+
+    candles_root = data_dir / "candles"
+    disk_candle_coins = (
+        {p.name for p in candles_root.iterdir() if p.is_dir()} if candles_root.exists() else set()
+    )
+    if set(manifest.files.candles.keys()) != disk_candle_coins:
+        raise ValueError(
+            f"Manifest candles coins mismatch: manifest={sorted(manifest.files.candles)}, "
+            f"disk={sorted(disk_candle_coins)}"
+        )
+    for coin, candle_files in manifest.files.candles.items():
+        coin_dir = candles_root / coin
+        actual_5m = {p.name.removesuffix(".json.gz") for p in (coin_dir / "5m").glob("*.json.gz")}
+        _assert_unique_matching_names(
+            f"files.candles.{coin}.months5m", candle_files.months5m, actual_5m
+        )
+        has_backfill = (coin_dir / "backfill_15m_1h.json.gz").is_file()
+        if candle_files.hasBackfill != has_backfill:
+            raise ValueError(
+                f"Manifest candles.{coin}.hasBackfill={candle_files.hasBackfill} "
+                f"does not match disk ({has_backfill})"
+            )
+        has_overview = (coin_dir / "overview_4h.json.gz").is_file()
+        if candle_files.hasOverview4h != has_overview:
+            raise ValueError(
+                f"Manifest candles.{coin}.hasOverview4h={candle_files.hasOverview4h} "
+                f"does not match disk ({has_overview})"
+            )
+
+    actual_bytes = sum(p.stat().st_size for p in data_dir.rglob("*") if p.is_file())
+    if manifest.storage.totalBytesOnDisk != actual_bytes:
+        raise ValueError(
+            f"Manifest storage.totalBytesOnDisk ({manifest.storage.totalBytesOnDisk}) "
+            f"!= actual disk bytes ({actual_bytes})"
+        )
+
+
 @app.command("validate-contracts")
 def validate_contracts(
     config_path: Annotated[
@@ -70,6 +147,8 @@ def validate_contracts(
         validate_candles(_load_json(path))
     for path in sorted((data_dir / "candles").glob("*/*.json.gz")):
         validate_candles(_load_json(path))
+
+    _verify_manifest_matches_disk(data_dir, manifest)
 
     typer.echo(
         f"Validated config v{cfg.schemaVersion} and site-data manifest "

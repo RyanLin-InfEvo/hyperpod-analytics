@@ -5,30 +5,19 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
-from pydantic import StrictBool
+from pydantic import StrictBool, model_validator
 
 from hyperpod.models.common import (
     ContractModel,
     NonNegInt,
     NonNegNumber,
     PosInt,
+    SchemaVersion,
     UnitInterval,
 )
-
-RejectReason = Literal[
-    "role",
-    "hft",
-    "mm",
-    "funding",
-    "hedge",
-    "passive",
-    "sample",
-    "mdd",
-    "pf",
-    "lucky",
-]
+from hyperpod.models.common import (
+    RejectReason as RejectReason,
+)
 
 
 class CandidateRow(ContractModel):
@@ -47,9 +36,15 @@ class CandidateRow(ContractModel):
     hedgeRatio: UnitInterval | None = None
     topWinShare: UnitInterval | None = None
 
+    @model_validator(mode="after")
+    def _check_passed_consistency(self) -> CandidateRow:
+        if self.passed != (len(self.rejectReasons) == 0):
+            raise ValueError("passed must be True iff rejectReasons is empty")
+        return self
+
 
 class CandidatesFile(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     generatedAt: NonNegInt
     criteriaVersion: PosInt
     candidates: list[CandidateRow]

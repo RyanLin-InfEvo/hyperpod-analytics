@@ -9,9 +9,15 @@ import gzip
 import hashlib
 import json
 import math
+import os
+import sys
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from hyperpod.config import PipelineConfig
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE_DATA = ROOT / "fixtures" / "site-data"
@@ -118,9 +124,7 @@ def build_candles() -> None:
             compress=True,
         )
 
-        c5m_oct = [
-            make_candle_bar(coin, t, FIVE_MIN_MS) for t in range(oct20, nov1, FIVE_MIN_MS)
-        ]
+        c5m_oct = [make_candle_bar(coin, t, FIVE_MIN_MS) for t in range(oct20, nov1, FIVE_MIN_MS)]
         write_json(
             SITE_DATA / "candles" / coin / "5m" / "2026-10.json.gz",
             {"schemaVersion": 1, "coin": coin, "interval": "5m", "c": c5m_oct},
@@ -137,7 +141,76 @@ def build_candles() -> None:
         )
 
 
-def build_whitelist() -> dict[str, Any]:
+def _ensure_pipeline_env() -> PipelineConfig:
+    pipeline_src = ROOT / "pipeline" / "src"
+    if str(pipeline_src) not in sys.path:
+        sys.path.insert(0, str(pipeline_src))
+    try:
+        from hyperpod.config import load_config
+    except ModuleNotFoundError:
+        venv_dir = ROOT / "pipeline" / ".venv"
+        venv_py = venv_dir / "bin" / "python"
+        if venv_py.exists() and Path(sys.prefix).resolve() != venv_dir.resolve():
+            os.execv(str(venv_py), [str(venv_py), str(Path(__file__).resolve()), *sys.argv[1:]])
+        raise
+    return load_config(ROOT / "config" / "pipeline.yaml")
+
+
+def _percentile_ranks(
+    values_by_id: dict[int, float | None], *, none_is_top: bool = False
+) -> dict[int, float]:
+    n = len(values_by_id)
+    denom = max(n - 1, 1)
+    present = sorted((val, aid) for aid, val in values_by_id.items() if val is not None)
+    out: dict[int, float] = {}
+    i = 0
+    while i < len(present):
+        j = i + 1
+        while j < len(present) and present[j][0] == present[i][0]:
+            j += 1
+        avg_rank = (i + j - 1) / 2.0
+        pct = 1.0 if n == 1 else avg_rank / denom
+        for k in range(i, j):
+            out[present[k][1]] = pct
+        i = j
+    if none_is_top:
+        for aid, val in values_by_id.items():
+            if val is None:
+                out[aid] = 1.0
+    return out
+
+
+def _apply_whitelist_scores(addresses: list[dict[str, Any]], cfg: PipelineConfig) -> None:
+    active = [addr for addr in addresses if addr["membership"][-1][1] is None]
+    if not active:
+        return
+    pf_pct = _percentile_ranks(
+        {a["id"]: a["metrics"]["profitFactorRobust"] for a in active}, none_is_top=True
+    )
+    roi_pct = _percentile_ranks({a["id"]: a["metrics"]["roiAllTime"] for a in active})
+    mdd_pct = _percentile_ranks({a["id"]: 1.0 - a["metrics"]["maxDrawdown"] for a in active})
+    mret_pct = _percentile_ranks(
+        {a["id"]: a["metrics"]["pnlMonth"] / a["metrics"]["accountValue"] for a in active}
+    )
+    wr_pct = _percentile_ranks({a["id"]: a["metrics"]["winRate"] for a in active})
+    av_pct = _percentile_ranks(
+        {a["id"]: math.log(max(a["metrics"]["accountValue"], 1.0)) for a in active}
+    )
+    w = cfg.scoring.weights
+    for addr in active:
+        aid = addr["id"]
+        score = (
+            w.profitFactorRobust.value * pf_pct[aid]
+            + w.roiAllTime.value * roi_pct[aid]
+            + w.invMaxDrawdown.value * mdd_pct[aid]
+            + w.monthlyReturn.value * mret_pct[aid]
+            + w.winRate.value * wr_pct[aid]
+            + w.logAccountValue.value * av_pct[aid]
+        )
+        addr["score"] = round(score, 4)
+
+
+def build_whitelist(cfg: PipelineConfig) -> dict[str, Any]:
     start_ms = ts_ms(START_DAY)
     cov_1_ms = ts_ms(datetime(2026, 10, 27, 12, 0, tzinfo=UTC))
     cov_4_ms = ts_ms(datetime(2026, 10, 30, 0, 0, tzinfo=UTC))
@@ -151,187 +224,196 @@ def build_whitelist() -> dict[str, Any]:
     addr3 = "0x4444444444444444444444444444444444444444"
     addr4 = "0x5555555555555555555555555555555555555555"
 
+    addresses = [
+        {
+            "id": 0,
+            "address": addr0,
+            "label": "Alpha Master",
+            "master": None,
+            "subAccounts": [addr1],
+            "coverageStart": start_ms,
+            "score": 0.91,
+            "metrics": {
+                "accountValue": 12_500_000.0,
+                "equitySource": "perp+spot",
+                "pnlAllTime": 4_200_000.0,
+                "roiAllTime": 0.61,
+                "pnlMonth": 310_000.0,
+                "maxDrawdown": 0.18,
+                "profitFactor": 2.45,
+                "profitFactorRobust": 1.95,
+                "winRate": 0.59,
+                "nTrades": 143,
+                "historyDays": 212.0,
+                "fillsPerDay": 24.5,
+                "medianHoldMinutes": 540.0,
+                "makerRatio": 0.34,
+                "turnoverMonth": 6.1,
+                "fundingShare": 0.04,
+                "topWinShare": 0.19,
+                "hedgeRatio": 0.0,
+            },
+            "membership": [
+                [start_ms, launched_ms, 0],
+                [launched_ms, v2_ms, 1],
+                [v2_ms, None, 2],
+            ],
+        },
+        {
+            "id": 1,
+            "address": addr1,
+            "label": "Alpha Subaccount",
+            "master": addr0,
+            "subAccounts": [],
+            "coverageStart": cov_1_ms,
+            "score": 0.78,
+            "metrics": {
+                "accountValue": 3_200_000.0,
+                "equitySource": "perp",
+                "pnlAllTime": 980_000.0,
+                "roiAllTime": 0.44,
+                "pnlMonth": 145_000.0,
+                "maxDrawdown": 0.21,
+                "profitFactor": 2.05,
+                "profitFactorRobust": 1.72,
+                "winRate": 0.55,
+                "nTrades": 88,
+                "historyDays": 120.0,
+                "fillsPerDay": 15.0,
+                "medianHoldMinutes": 420.0,
+                "makerRatio": 0.41,
+                "turnoverMonth": 4.8,
+                "fundingShare": 0.03,
+                "topWinShare": 0.22,
+                "hedgeRatio": 0.1,
+            },
+            "membership": [
+                [cov_1_ms, launched_ms, 0],
+                [launched_ms, v2_ms, 1],
+                [v2_ms, None, 2],
+            ],
+        },
+        {
+            "id": 2,
+            "address": addr2,
+            "label": None,
+            "master": None,
+            "subAccounts": [],
+            "coverageStart": start_ms,
+            "score": 0.72,
+            "metrics": {
+                "accountValue": 5_800_000.0,
+                "equitySource": "perp+spot",
+                "pnlAllTime": 1_850_000.0,
+                "roiAllTime": 0.47,
+                "pnlMonth": 92_000.0,
+                "maxDrawdown": 0.29,
+                "profitFactor": 1.92,
+                "profitFactorRobust": 1.61,
+                "winRate": 0.52,
+                "nTrades": 76,
+                "historyDays": 165.0,
+                "fillsPerDay": 19.2,
+                "medianHoldMinutes": 310.0,
+                "makerRatio": 0.22,
+                "turnoverMonth": 8.9,
+                "fundingShare": 0.07,
+                "topWinShare": 0.25,
+                "hedgeRatio": 0.0,
+            },
+            "membership": [
+                [start_ms, launched_ms, 0],
+                [launched_ms, v2_ms, 1],
+                [v2_ms, None, 2],
+            ],
+        },
+        {
+            "id": 3,
+            "address": addr3,
+            "label": "Exited Whale",
+            "master": None,
+            "subAccounts": [],
+            "coverageStart": start_ms,
+            "score": 0.54,
+            "metrics": {
+                "accountValue": 2_100_000.0,
+                "equitySource": "perp",
+                "pnlAllTime": 640_000.0,
+                "roiAllTime": 0.31,
+                "pnlMonth": -45_000.0,
+                "maxDrawdown": 0.42,
+                "profitFactor": 1.65,
+                "profitFactorRobust": 1.38,
+                "winRate": 0.48,
+                "nTrades": 54,
+                "historyDays": 95.0,
+                "fillsPerDay": 11.4,
+                "medianHoldMinutes": 290.0,
+                "makerRatio": 0.18,
+                "turnoverMonth": 5.3,
+                "fundingShare": 0.05,
+                "topWinShare": 0.28,
+                "hedgeRatio": 0.0,
+            },
+            "membership": [
+                [start_ms, launched_ms, 0],
+                [launched_ms, v2_ms, 1],
+                [v2_ms, exit_ms, 2],
+            ],
+        },
+        {
+            "id": 4,
+            "address": addr4,
+            "label": "Zero-Loss Newcomer",
+            "master": None,
+            "subAccounts": [],
+            "coverageStart": cov_4_ms,
+            "score": 0.96,
+            "metrics": {
+                "accountValue": 4_400_000.0,
+                "equitySource": "perp+spot",
+                "pnlAllTime": 1_120_000.0,
+                "roiAllTime": 0.34,
+                "pnlMonth": 280_000.0,
+                "maxDrawdown": 0.06,
+                "profitFactor": None,
+                "profitFactorRobust": None,
+                "winRate": 1.0,
+                "nTrades": 28,
+                "historyDays": 48.0,
+                "fillsPerDay": 9.8,
+                "medianHoldMinutes": 720.0,
+                "makerRatio": 0.62,
+                "turnoverMonth": 3.4,
+                "fundingShare": 0.02,
+                "topWinShare": 0.16,
+                "hedgeRatio": 0.0,
+            },
+            "membership": [
+                [v2_ms, None, 2],
+            ],
+        },
+    ]
+    _apply_whitelist_scores(addresses, cfg)
     return {
         "schemaVersion": 1,
         "version": "2026-11-05",
-        "addresses": [
-            {
-                "id": 0,
-                "address": addr0,
-                "label": "Alpha Master",
-                "master": None,
-                "subAccounts": [addr1],
-                "coverageStart": start_ms,
-                "score": 0.91,
-                "metrics": {
-                    "accountValue": 12_500_000.0,
-                    "equitySource": "perp+spot",
-                    "pnlAllTime": 4_200_000.0,
-                    "roiAllTime": 0.61,
-                    "pnlMonth": 310_000.0,
-                    "maxDrawdown": 0.18,
-                    "profitFactor": 2.45,
-                    "profitFactorRobust": 1.95,
-                    "winRate": 0.59,
-                    "nTrades": 143,
-                    "historyDays": 212.0,
-                    "fillsPerDay": 24.5,
-                    "medianHoldMinutes": 540.0,
-                    "makerRatio": 0.34,
-                    "turnoverMonth": 6.1,
-                    "fundingShare": 0.04,
-                    "topWinShare": 0.19,
-                    "hedgeRatio": 0.0,
-                },
-                "membership": [
-                    [start_ms, launched_ms, 0],
-                    [launched_ms, v2_ms, 1],
-                    [v2_ms, None, 2],
-                ],
-            },
-            {
-                "id": 1,
-                "address": addr1,
-                "label": "Alpha Subaccount",
-                "master": addr0,
-                "subAccounts": [],
-                "coverageStart": cov_1_ms,
-                "score": 0.78,
-                "metrics": {
-                    "accountValue": 3_200_000.0,
-                    "equitySource": "perp",
-                    "pnlAllTime": 980_000.0,
-                    "roiAllTime": 0.44,
-                    "pnlMonth": 145_000.0,
-                    "maxDrawdown": 0.21,
-                    "profitFactor": 2.05,
-                    "profitFactorRobust": 1.72,
-                    "winRate": 0.55,
-                    "nTrades": 88,
-                    "historyDays": 120.0,
-                    "fillsPerDay": 15.0,
-                    "medianHoldMinutes": 420.0,
-                    "makerRatio": 0.41,
-                    "turnoverMonth": 4.8,
-                    "fundingShare": 0.03,
-                    "topWinShare": 0.22,
-                    "hedgeRatio": 0.1,
-                },
-                "membership": [
-                    [cov_1_ms, launched_ms, 0],
-                    [launched_ms, v2_ms, 1],
-                    [v2_ms, None, 2],
-                ],
-            },
-            {
-                "id": 2,
-                "address": addr2,
-                "label": None,
-                "master": None,
-                "subAccounts": [],
-                "coverageStart": start_ms,
-                "score": 0.72,
-                "metrics": {
-                    "accountValue": 5_800_000.0,
-                    "equitySource": "perp+spot",
-                    "pnlAllTime": 1_850_000.0,
-                    "roiAllTime": 0.47,
-                    "pnlMonth": 92_000.0,
-                    "maxDrawdown": 0.29,
-                    "profitFactor": 1.92,
-                    "profitFactorRobust": 1.61,
-                    "winRate": 0.52,
-                    "nTrades": 76,
-                    "historyDays": 165.0,
-                    "fillsPerDay": 19.2,
-                    "medianHoldMinutes": 310.0,
-                    "makerRatio": 0.22,
-                    "turnoverMonth": 8.9,
-                    "fundingShare": 0.07,
-                    "topWinShare": 0.25,
-                    "hedgeRatio": 0.0,
-                },
-                "membership": [
-                    [start_ms, launched_ms, 0],
-                    [launched_ms, v2_ms, 1],
-                    [v2_ms, None, 2],
-                ],
-            },
-            {
-                "id": 3,
-                "address": addr3,
-                "label": "Exited Whale",
-                "master": None,
-                "subAccounts": [],
-                "coverageStart": start_ms,
-                "score": 0.54,
-                "metrics": {
-                    "accountValue": 2_100_000.0,
-                    "equitySource": "perp",
-                    "pnlAllTime": 640_000.0,
-                    "roiAllTime": 0.31,
-                    "pnlMonth": -45_000.0,
-                    "maxDrawdown": 0.42,
-                    "profitFactor": 1.65,
-                    "profitFactorRobust": 1.38,
-                    "winRate": 0.48,
-                    "nTrades": 54,
-                    "historyDays": 95.0,
-                    "fillsPerDay": 11.4,
-                    "medianHoldMinutes": 290.0,
-                    "makerRatio": 0.18,
-                    "turnoverMonth": 5.3,
-                    "fundingShare": 0.05,
-                    "topWinShare": 0.28,
-                    "hedgeRatio": 0.0,
-                },
-                "membership": [
-                    [start_ms, launched_ms, 0],
-                    [launched_ms, v2_ms, 1],
-                    [v2_ms, exit_ms, 2],
-                ],
-            },
-            {
-                "id": 4,
-                "address": addr4,
-                "label": "Zero-Loss Newcomer",
-                "master": None,
-                "subAccounts": [],
-                "coverageStart": cov_4_ms,
-                "score": 0.96,
-                "metrics": {
-                    "accountValue": 4_400_000.0,
-                    "equitySource": "perp+spot",
-                    "pnlAllTime": 1_120_000.0,
-                    "roiAllTime": 0.34,
-                    "pnlMonth": 280_000.0,
-                    "maxDrawdown": 0.06,
-                    "profitFactor": None,
-                    "profitFactorRobust": None,
-                    "winRate": 1.0,
-                    "nTrades": 28,
-                    "historyDays": 48.0,
-                    "fillsPerDay": 9.8,
-                    "medianHoldMinutes": 720.0,
-                    "makerRatio": 0.62,
-                    "turnoverMonth": 3.4,
-                    "fundingShare": 0.02,
-                    "topWinShare": 0.16,
-                    "hedgeRatio": 0.0,
-                },
-                "membership": [
-                    [v2_ms, None, 2],
-                ],
-            },
-        ],
+        "addresses": addresses,
     }
 
 
-def build_criteria() -> dict[str, Any]:
+def build_criteria(candidates_payload: dict[str, Any], cfg: PipelineConfig) -> dict[str, Any]:
     v1_from = ts_ms(LAUNCHED_DT)
     v2_from = ts_ms(V2_DT)
     h1 = "sha256:" + hashlib.sha256(b"criteria-v1").hexdigest()
     h2 = "sha256:" + hashlib.sha256(b"criteria-v2").hexdigest()
+
+    candidate_rows = candidates_payload["candidates"]
+    passed_count = sum(1 for row in candidate_rows if row["passed"])
+    rejected_counts: Counter[str] = Counter()
+    for row in candidate_rows:
+        for reason in row["rejectReasons"]:
+            rejected_counts[reason] += 1
 
     return {
         "schemaVersion": 1,
@@ -339,70 +421,22 @@ def build_criteria() -> dict[str, Any]:
             "version": 2,
             "effectiveFrom": v2_from,
             "hash": h2,
-            "stage1": [
-                {
-                    "key": "minAccountValue",
-                    "label": "Min account value",
-                    "op": ">=",
-                    "value": 1_000_000,
-                    "unit": "USD",
-                    "description": "Minimum account equity in USD from leaderboard or on-chain evaluation",
-                },
-                {
-                    "key": "maxTurnoverMonth",
-                    "label": "Max monthly turnover",
-                    "op": "<=",
-                    "value": 150,
-                    "unit": "x",
-                    "description": "Exclude market makers whose monthly volume divided by account value exceeds limit",
-                },
-            ],
-            "gates": [
-                {
-                    "key": "hft.fillsPerDay",
-                    "label": "Max fills per day",
-                    "op": "<=",
-                    "value": 500,
-                    "unit": "count",
-                    "description": "Maximum average aggregated main-perp fills per active trading day (30d)",
-                },
-                {
-                    "key": "mdd",
-                    "label": "Max drawdown",
-                    "op": "<=",
-                    "value": 0.45,
-                    "unit": "ratio",
-                    "description": "Peak-to-trough of perp all-time PnL relative to account value at peak",
-                },
-                {
-                    "key": "pf",
-                    "label": "Robust profit factor",
-                    "op": ">=",
-                    "value": 1.5,
-                    "unit": "ratio",
-                    "description": "Profit factor after removing the single largest winning trade",
-                },
-            ],
+            "stage1": cfg.export_stage1_rules(),
+            "gates": cfg.export_gate_rules(),
             "membership": {
-                "exitAfterFailedDays": 3,
-                "subaccounts": "merge_after_filter",
-                "excludeVaults": True,
+                "exitAfterFailedDays": cfg.membership.exitAfterFailedDays.value,
+                "subaccounts": cfg.membership.subaccounts.value,
+                "excludeVaults": cfg.membership.excludeVaults.value,
             },
             "scope": {
-                "perpDex": "main",
-                "spot": False,
-                "hip3": False,
+                "perpDex": cfg.scope.perpDex.value,
+                "spot": cfg.scope.spot.value,
+                "hip3": cfg.scope.hip3.value,
             },
             "stats": {
-                "candidates": 20,
-                "passed": 4,
-                "rejectedBy": {
-                    "hft": 5,
-                    "mdd": 4,
-                    "pf": 4,
-                    "role": 1,
-                    "sample": 2,
-                },
+                "candidates": len(candidate_rows),
+                "passed": passed_count,
+                "rejectedBy": dict(sorted(rejected_counts.items())),
             },
         },
         "history": [
@@ -413,7 +447,7 @@ def build_criteria() -> dict[str, Any]:
                 "hash": h1,
                 "changes": [
                     {
-                        "key": "pf",
+                        "key": "pf.minRobust",
                         "from": 1.3,
                         "to": 1.5,
                     }
@@ -455,7 +489,9 @@ def build_candidates() -> dict[str, Any]:
                 "passed": passed,
                 "rejectReasons": reasons,
                 "fillsPerDay": None if reasons == ["role"] else round(10.0 + idx * 35.0, 2),
-                "makerRatio": None if reasons == ["role"] else round(min(0.95, 0.2 + idx * 0.03), 3),
+                "makerRatio": None
+                if reasons == ["role"]
+                else round(min(0.95, 0.2 + idx * 0.03), 3),
                 "medianHoldMinutes": None
                 if reasons == ["role"]
                 else (2.5 if "hft" in reasons else 360.0 + idx * 15.0),
@@ -470,9 +506,15 @@ def build_candidates() -> dict[str, Any]:
                 "historyDays": None
                 if reasons == ["role"]
                 else (15.0 if "sample" in reasons else 140.0),
-                "fundingShare": None if reasons == ["role"] else (0.65 if "funding" in reasons else 0.04),
-                "hedgeRatio": None if reasons == ["role"] else (0.9 if "hedge" in reasons else 0.05),
-                "topWinShare": None if reasons == ["role"] else (0.62 if "lucky" in reasons else 0.21),
+                "fundingShare": None
+                if reasons == ["role"]
+                else (0.65 if "funding" in reasons else 0.04),
+                "hedgeRatio": None
+                if reasons == ["role"]
+                else (0.9 if "hedge" in reasons else 0.05),
+                "topWinShare": None
+                if reasons == ["role"]
+                else (0.62 if "lucky" in reasons else 0.21),
             }
         )
     return {
@@ -606,7 +648,7 @@ def build_snapshots_and_fills() -> tuple[dict[str, Any], list[str], list[str]]:
 
     # Initial positions at 2026-10-27 00:00 UTC (addr 0, 2, 3 active; addr 1 starts at 12:00; addr 4 joins Nov 3)
     state_pos: dict[tuple[int, int], tuple[float, float | None]] = {
-        (0, 0): (4.0, None),       # entryPx=None (pre-existing before first zero crossing)
+        (0, 0): (4.0, None),  # entryPx=None (pre-existing before first zero crossing)
         (0, 1): (150.0, 3080.0),
         (2, 0): (3.0, 94500.0),
         (2, 1): (200.0, 3050.0),
@@ -711,7 +753,9 @@ def build_snapshots_and_fills() -> tuple[dict[str, Any], list[str], list[str]]:
         mark_res="1h",
         is_month=True,
     )
-    write_json(SITE_DATA / "snapshots" / "months" / "2026-10.json.gz", oct_month_snap, compress=True)
+    write_json(
+        SITE_DATA / "snapshots" / "months" / "2026-10.json.gz", oct_month_snap, compress=True
+    )
 
     # 2. Recent 7 daily snapshots: 2026-10-30 .. 2026-11-05
     snapshot_days: list[str] = []
@@ -787,6 +831,7 @@ def total_bytes_on_disk() -> int:
 
 
 def main() -> None:
+    cfg = _ensure_pipeline_env()
     if SITE_DATA.exists():
         for p in sorted(SITE_DATA.rglob("*"), reverse=True):
             if p.is_file():
@@ -796,9 +841,9 @@ def main() -> None:
     SITE_DATA.mkdir(parents=True, exist_ok=True)
 
     build_candles()
-    whitelist = build_whitelist()
-    criteria = build_criteria()
+    whitelist = build_whitelist(cfg)
     candidates = build_candidates()
+    criteria = build_criteria(candidates, cfg)
     _, snapshot_days, snapshot_months = build_snapshots_and_fills()
 
     write_json(SITE_DATA / "whitelist.json", whitelist)
@@ -824,9 +869,7 @@ def main() -> None:
         "files": {
             "snapshotDays": snapshot_days,
             "snapshotMonths": snapshot_months,
-            "fills": {
-                coin: {"days": snapshot_days, "months": snapshot_months} for coin in COINS
-            },
+            "fills": {coin: {"days": snapshot_days, "months": snapshot_months} for coin in COINS},
             "candles": {
                 coin: {
                     "months5m": ["2026-10", "2026-11"],

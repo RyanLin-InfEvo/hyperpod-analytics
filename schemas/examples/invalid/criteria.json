@@ -3,15 +3,15 @@
   "current": {
     "version": 0,
     "effectiveFrom": 1762128000000,
-    "hash": "not-a-sha256",
+    "hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
     "stage1": [
       {
         "key": "minAccountValue",
-        "label": "",
+        "label": "Min account value",
         "op": ">=",
         "value": 1000000,
         "unit": "USD",
-        "description": "Missing label should fail"
+        "description": "Minimum leaderboard or on-chain account value in USD"
       }
     ],
     "gates": [],
@@ -21,7 +21,7 @@
       "excludeVaults": true
     },
     "scope": {
-      "perpDex": "all",
+      "perpDex": "main",
       "spot": false,
       "hip3": false
     },

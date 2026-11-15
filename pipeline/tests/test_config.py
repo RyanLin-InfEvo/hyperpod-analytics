@@ -6,9 +6,12 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import pytest
 import yaml
 from hypothesis import given
@@ -16,6 +19,7 @@ from hypothesis import strategies as st
 from pydantic import ValidationError
 
 from hyperpod.config import PipelineConfig, default_config_path, load_config
+from hyperpod.models import CriteriaFile
 
 
 def _raw_config() -> dict[str, Any]:
@@ -115,3 +119,93 @@ def test_load_config_non_mapping_root_raises(tmp_path: Path) -> None:
     bad_yaml.write_text("- not a dict\n", encoding="utf-8")
     with pytest.raises(ValueError, match="Expected mapping"):
         load_config(bad_yaml)
+
+
+def test_config_strict_types_reject_bool_string_and_non_finite_floats() -> None:
+    base = _raw_config()
+
+    bad_schema_ver = copy.deepcopy(base)
+    bad_schema_ver["schemaVersion"] = True
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_schema_ver)
+
+    bad_spot = copy.deepcopy(base)
+    bad_spot["scope"]["spot"]["value"] = 0
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_spot)
+
+    bad_av_bool = copy.deepcopy(base)
+    bad_av_bool["stage1"]["minAccountValue"]["value"] = True
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_av_bool)
+
+    bad_av_str = copy.deepcopy(base)
+    bad_av_str["stage1"]["minAccountValue"]["value"] = "1000000"
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_av_str)
+
+    bad_pnl_nan = copy.deepcopy(base)
+    bad_pnl_nan["stage1"]["minPnlAllTime"]["value"] = float("nan")
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_pnl_nan)
+
+    bad_ratio_inf = copy.deepcopy(base)
+    bad_ratio_inf["stage1"]["minPnlMonthRatio"]["value"] = float("inf")
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_ratio_inf)
+
+    bad_label_type = copy.deepcopy(base)
+    bad_label_type["ratelimit"]["ciBudgetPerMin"]["label"] = 123
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate(bad_label_type)
+
+
+def test_snapshot_reconstruct_1h_days_exceeding_reconstruct_days_rejected() -> None:
+    raw = _raw_config()
+    raw["snapshot"]["reconstruct1hDays"]["value"] = 120
+    raw["snapshot"]["reconstructDays"]["value"] = 90
+    with pytest.raises(ValidationError, match="reconstruct1hDays"):
+        PipelineConfig.model_validate(raw)
+
+
+def test_export_stage1_and_gate_rules_validate_against_criteria_contract() -> None:
+    cfg = load_config()
+    stage1_rules = cfg.export_stage1_rules()
+    gate_rules = cfg.export_gate_rules()
+
+    assert len(stage1_rules) == 4
+    assert len(gate_rules) == 14
+    exclude_roles = next(rule for rule in gate_rules if rule["key"] == "excludeRoles")
+    assert exclude_roles["op"] == "not_in"
+    assert exclude_roles["value"] == ["vault", "agent", "missing"]
+
+    payload = {
+        "schemaVersion": 1,
+        "current": {
+            "version": 1,
+            "effectiveFrom": 1762128000000,
+            "hash": "sha256:" + hashlib.sha256(b"test").hexdigest(),
+            "stage1": stage1_rules,
+            "gates": gate_rules,
+            "membership": {
+                "exitAfterFailedDays": cfg.membership.exitAfterFailedDays.value,
+                "subaccounts": cfg.membership.subaccounts.value,
+                "excludeVaults": cfg.membership.excludeVaults.value,
+            },
+            "scope": {
+                "perpDex": cfg.scope.perpDex.value,
+                "spot": cfg.scope.spot.value,
+                "hip3": cfg.scope.hip3.value,
+            },
+            "stats": {
+                "candidates": 10,
+                "passed": 2,
+                "rejectedBy": {"hft": 5, "pf": 3},
+            },
+        },
+        "history": [],
+    }
+    schema_path = Path(__file__).resolve().parents[2] / "schemas" / "criteria.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    jsonschema.validate(instance=payload, schema=schema, cls=jsonschema.Draft202012Validator)
+    CriteriaFile.model_validate(payload)

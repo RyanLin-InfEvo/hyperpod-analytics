@@ -8,12 +8,11 @@
       "passed": false,
       "rejectReasons": ["unknown_gate_code"],
       "fillsPerDay": 24.5,
-      "makerRatio": 1.2,
+      "makerRatio": 0.35,
       "medianHoldMinutes": 480.0,
       "maxDrawdown": 0.19,
       "profitFactorRobust": 1.92,
-      "turnoverMonth": 6.4,
-      "address": "0x1111111111111111111111111111111111111111"
+      "turnoverMonth": 6.4
     }
   ]
 }

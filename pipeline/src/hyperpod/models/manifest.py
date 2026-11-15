@@ -5,9 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
-from pydantic import StrictBool
+from pydantic import StrictBool, StrictStr, model_validator
 
 from hyperpod.models.common import (
     ContractModel,
@@ -16,6 +14,7 @@ from hyperpod.models.common import (
     NonEmptyStr,
     NonNegInt,
     PosInt,
+    SchemaVersion,
 )
 
 
@@ -24,6 +23,12 @@ class CoinTrack(ContractModel):
     pinned: StrictBool
     trackedFrom: NonNegInt
     trackedTo: NonNegInt | None
+
+    @model_validator(mode="after")
+    def _check_tracked_order(self) -> CoinTrack:
+        if self.trackedTo is not None and self.trackedTo < self.trackedFrom:
+            raise ValueError("trackedTo must be >= trackedFrom")
+        return self
 
 
 class FillFiles(ContractModel):
@@ -52,11 +57,11 @@ class StorageInfo(ContractModel):
 class PipelineStatus(ContractModel):
     fastLastOk: NonNegInt | None
     dailyLastOk: NonNegInt | None
-    warnings: list[str]
+    warnings: list[StrictStr]
 
 
 class Manifest(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     generatedAt: NonNegInt
     latestSnapshotAt: NonNegInt
     launchedAt: NonNegInt

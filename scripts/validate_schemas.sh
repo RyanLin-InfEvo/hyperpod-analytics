@@ -29,8 +29,10 @@ echo "==> Verifying schemas/examples/invalid/*.json are rejected"
 for example in schemas/examples/invalid/*.json; do
   base="$(basename "$example")"
   schema="$(schema_for_example "$base")"
-  if check-jsonschema --schemafile "$schema" "$example" >/dev/null 2>&1; then
-    echo "ERROR: Invalid example '$example' unexpectedly passed '$schema'!" >&2
+  rc=0
+  check-jsonschema --schemafile "$schema" "$example" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -ne 1 ]; then
+    echo "ERROR: Expected exit code 1 for invalid example '$example', got $rc!" >&2
     exit 1
   fi
 done

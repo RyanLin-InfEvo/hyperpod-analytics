@@ -13,14 +13,17 @@ from hyperpod.models.common import (
     NonNegInt,
     NonNegNumber,
     PosNumber,
+    SchemaVersion,
+)
+from hyperpod.models.common import (
+    LiqFlag as LiqFlag,
 )
 
 DirCode = Literal["OL", "CL", "OS", "CS"]
-LiqFlag = Literal[0, 1]
 FillRow = tuple[NonNegInt, NonNegInt, DirCode, PosNumber, PosNumber, NonNegNumber, LiqFlag]
 
 
 class FillsFile(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     coin: NonEmptyStr
     fills: list[FillRow]

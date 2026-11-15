@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import Field
+from pydantic import Field, StrictStr, model_validator
 
 from hyperpod.models.common import (
     ContractModel,
@@ -16,6 +16,7 @@ from hyperpod.models.common import (
     JsonNumber,
     NonNegInt,
     NonNegNumber,
+    SchemaVersion,
     UnitInterval,
 )
 
@@ -47,7 +48,7 @@ class WhitelistMetrics(ContractModel):
 class WhitelistAddress(ContractModel):
     id: NonNegInt
     address: EvmAddress
-    label: str | None
+    label: StrictStr | None
     master: EvmAddress | None
     subAccounts: list[EvmAddress]
     coverageStart: NonNegInt
@@ -55,8 +56,15 @@ class WhitelistAddress(ContractModel):
     metrics: WhitelistMetrics
     membership: Annotated[list[MembershipInterval], Field(min_length=1)]
 
+    @model_validator(mode="after")
+    def _check_membership_order(self) -> WhitelistAddress:
+        for enter_ts, exit_ts, _ in self.membership:
+            if exit_ts is not None and exit_ts < enter_ts:
+                raise ValueError("membership exitTs must be >= enterTs")
+        return self
+
 
 class Whitelist(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     version: DateStr
     addresses: list[WhitelistAddress]

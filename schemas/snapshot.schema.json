@@ -127,7 +127,22 @@
         ],
         "minItems": 5,
         "maxItems": 5,
-        "items": false
+        "items": false,
+        "not": {
+          "prefixItems": [
+            {},
+            {},
+            {},
+            {
+              "const": 0
+            },
+            {
+              "not": {
+                "type": "null"
+              }
+            }
+          ]
+        }
       }
     },
     "series": {

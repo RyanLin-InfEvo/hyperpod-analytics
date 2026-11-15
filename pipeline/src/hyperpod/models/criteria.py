@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import Field, StrictBool, StrictInt, StrictStr
+from pydantic import Field, StrictBool, StrictInt, StrictStr, model_validator
 
 from hyperpod.models.common import (
     ContractModel,
@@ -15,12 +15,20 @@ from hyperpod.models.common import (
     NonEmptyStr,
     NonNegInt,
     PosInt,
+    RejectReason,
+    SchemaVersion,
     Sha256Ref,
 )
 
 RuleOp = Literal["<", "<=", ">", ">=", "==", "!=", "not_in"]
 SubaccountMode = Literal["independent", "merge_after_filter", "merge_before_filter"]
-RuleValue = StrictBool | StrictInt | JsonNumber | StrictStr
+RuleValue = (
+    StrictBool
+    | StrictInt
+    | JsonNumber
+    | StrictStr
+    | Annotated[list[NonEmptyStr], Field(min_length=1)]
+)
 
 
 class CriteriaRule(ContractModel):
@@ -47,7 +55,7 @@ class CriteriaScope(ContractModel):
 class CriteriaStats(ContractModel):
     candidates: NonNegInt
     passed: NonNegInt
-    rejectedBy: dict[str, NonNegInt]
+    rejectedBy: dict[RejectReason, NonNegInt]
 
 
 class CriteriaCurrent(ContractModel):
@@ -74,8 +82,14 @@ class CriteriaHistoryItem(ContractModel):
     hash: Sha256Ref
     changes: list[CriteriaChange]
 
+    @model_validator(mode="after")
+    def _check_effective_order(self) -> CriteriaHistoryItem:
+        if self.effectiveTo < self.effectiveFrom:
+            raise ValueError("effectiveTo must be >= effectiveFrom")
+        return self
+
 
 class CriteriaFile(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     current: CriteriaCurrent
     history: list[CriteriaHistoryItem]

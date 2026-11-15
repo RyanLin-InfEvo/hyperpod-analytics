@@ -13,6 +13,7 @@ from hyperpod.models.common import (
     NonNegInt,
     NonNegNumber,
     PosNumber,
+    SchemaVersion,
 )
 
 CandleInterval = Literal["5m", "15m", "1h", "4h"]
@@ -20,14 +21,14 @@ CandleRow = tuple[NonNegInt, PosNumber, PosNumber, PosNumber, PosNumber, NonNegN
 
 
 class SingleIntervalCandles(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     coin: NonEmptyStr
     interval: CandleInterval
     c: list[CandleRow]
 
 
 class BackfillCandles(ContractModel):
-    schemaVersion: Literal[1]
+    schemaVersion: SchemaVersion
     coin: NonEmptyStr
     interval: Literal["15m_1h"]
     c15m: list[CandleRow]
