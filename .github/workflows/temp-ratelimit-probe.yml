@@ -2,6 +2,9 @@ name: Temp Ratelimit Probe
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/temp-ratelimit-probe.yml'
 
 jobs:
   probe:
