@@ -1,0 +1,79 @@
+name: Temp Ratelimit Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe 100x clearinghouseState (sequential and 4-way concurrent)
+        run: |
+          python3 - << 'EOF'
+          import concurrent.futures
+          import json
+          import statistics
+          import time
+          import urllib.error
+          import urllib.request
+
+          URL = "https://api.hyperliquid.xyz/info"
+          PAYLOAD = json.dumps({
+              "type": "clearinghouseState",
+              "user": "0xfc27136e42af1732ddc9ce2605ea9bff1b959d9d",
+          }).encode()
+
+          def call_once(_):
+              t0 = time.perf_counter()
+              req = urllib.request.Request(
+                  URL,
+                  data=PAYLOAD,
+                  headers={"Content-Type": "application/json", "User-Agent": "hyperpod-runner-probe/0.1"},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as resp:
+                      _ = resp.read()
+                      dt = (time.perf_counter() - t0) * 1000.0
+                      return resp.status, dt, resp.headers.get("X-Amz-Cf-Pop", "unknown")
+              except urllib.error.HTTPError as e:
+                  dt = (time.perf_counter() - t0) * 1000.0
+                  return e.code, dt, e.headers.get("X-Amz-Cf-Pop", "unknown") if e.headers else "unknown"
+              except Exception as e:
+                  dt = (time.perf_counter() - t0) * 1000.0
+                  return str(e), dt, "error"
+
+          def summarize(name, results, total_s):
+              statuses = {}
+              pops = {}
+              lat = []
+              for st, dt, pop in results:
+                  statuses[str(st)] = statuses.get(str(st), 0) + 1
+                  pops[pop] = pops.get(pop, 0) + 1
+                  lat.append(dt)
+              lat.sort()
+              def pct(p):
+                  idx = min(len(lat) - 1, max(0, int(round((p / 100.0) * (len(lat) - 1)))))
+                  return lat[idx]
+              print(f"=== {name} ===")
+              print(f"Total requests: {len(results)}, wall time: {total_s:.3f}s, req/s: {len(results)/total_s:.2f}")
+              print(f"Statuses: {statuses}")
+              print(f"Cf-Pops: {pops}")
+              print(
+                  f"Latency ms: min={lat[0]:.1f}, p50={pct(50):.1f}, p90={pct(90):.1f}, "
+                  f"p95={pct(95):.1f}, p99={pct(99):.1f}, max={lat[-1]:.1f}, mean={statistics.mean(lat):.1f}"
+              )
+
+          t0 = time.perf_counter()
+          seq_res = [call_once(i) for i in range(100)]
+          t1 = time.perf_counter()
+          summarize("Sequential 100x clearinghouseState", seq_res, t1 - t0)
+
+          time.sleep(2.0)
+
+          t2 = time.perf_counter()
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+              conc_res = list(ex.map(call_once, range(100)))
+          t3 = time.perf_counter()
+          summarize("Concurrent (4 workers) 100x clearinghouseState", conc_res, t3 - t2)
+          EOF
