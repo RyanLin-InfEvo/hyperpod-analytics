@@ -6,9 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # HyperPod Cross-Session Status (`docs/status.md`)
 
 - `currentPhase`: `Phase 2`
-- `currentTask`: `2.1–2.4 (In Progress)`
-- `state`: `IN_PROGRESS`
-- `lastUpdated`: `2026-11-16T09:10:00+08:00`
+- `currentTask`: `2.4 (Phase 2 Complete — Awaiting User Review)`
+- `state`: `WAITING_USER_REVIEW`
+- `lastUpdated`: `2026-11-16T09:42:00+08:00`
 
 ## Completed Commits & Artifacts
 - `2d8db9f` — Initial repo state on `main` (`Add gitignore and README`)
@@ -26,10 +26,16 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - `624008d` — `docs(phase-1): add Phase 1 gate report and set status to WAITING_USER_REVIEW`
 - [`flutter.sh`](../flutter.sh) + Chromium (`CHROME_EXECUTABLE`) in [`shell.nix`](../shell.nix) — NixOS Flutter CLI/Chrome wrapper (`./flutter.sh --version`, `./flutter.sh test`, `./flutter.sh devices` verified)
 - Phase 1 Gate Report: [`docs/phase-reports/phase-1.md`](phase-reports/phase-1.md)
+- `6bfc4eb` — Task 2.1: `WeightRateLimiter` (`pipeline/src/hyperpod/client/ratelimit.py`, `pipeline/tests/test_ratelimit.py`, `pytest-cov` in `pyproject.toml`/`uv.lock`)
+- `6d77ca2` — Task 2.2: Strict API Pydantic models (`pipeline/src/hyperpod/models/api.py`), `InfoApiClient` + fill/equity normalization (`pipeline/src/hyperpod/client/info_api.py`, `pipeline/tests/test_info_api.py`)
+- `c1b391d` — Task 2.3: Streaming `LeaderboardClient` + gzip cache fallback (`pipeline/src/hyperpod/client/leaderboard.py`, `pipeline/tests/test_leaderboard.py`)
+- `a0a58f4` — Task 2.4: `hyperpod debug-address` (`pipeline/src/hyperpod/cli.py`, `pipeline/tests/test_debug_address.py`)
+- `d9437c5` — `fix(client): resolve Phase 2 adversarial audit findings across client, models, and CLI` (remediated `3 MAJOR`, `3 MINOR`; `94.59%` `hyperpod.client` coverage; secondary audit `PASS`)
+- Phase 2 Gate Report: [`docs/phase-reports/phase-2.md`](phase-reports/phase-2.md)
 
 ## Active Background Jobs
 - None
 
 ## Pending User Actions / Proposals (§11.2 / §11.3 / §13)
-1. **Review Phase 1 Gate Report (`docs/phase-reports/phase-1.md`):** Authorize proceeding to **Phase 2 — Hyperliquid 客戶端與正規化 (`2.1`–`2.4`)**.
+1. **Review Phase 2 Gate Report (`docs/phase-reports/phase-2.md`):** Authorize proceeding to **Phase 3 — 候選發現與評分 (`3.1`–`3.5`)**.
 2. **GitHub Actions & Remote Push (`§13`):** Confirm GitHub Repo `Settings → Actions → General → Workflow permissions` is set to **Read and write permissions**, push local `main` commits to `origin`, and verify `ci.yml` passes on GitHub Actions.
