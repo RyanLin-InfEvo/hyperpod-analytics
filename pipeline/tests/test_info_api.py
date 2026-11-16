@@ -831,3 +831,239 @@ def test_concurrency_limit_and_all_endpoints_plus_retries_and_errors() -> None:
         assert [f.tid for _, f in seeded_res.fills] == [12]
 
     asyncio.run(scenario())
+
+
+def test_concurrent_dynamic_weight_does_not_bypass_rate_limit() -> None:
+    async def scenario() -> None:
+        now = 0.0
+
+        async def sim_sleep(dt: float) -> None:
+            nonlocal now
+            now += dt
+
+        limiter = WeightRateLimiter(
+            budget_per_min=480,
+            max_retries=2,
+            clock=lambda: now,
+            sleep=sim_sleep,
+            rng=lambda: 0.0,
+        )
+        page_2k = [_sample_fill(time=10_000 + i, tid=i, tx_hash=f"0x{i:064x}") for i in range(2000)]
+        user = "0x1111111111111111111111111111111111111111"
+
+        with respx.mock(assert_all_called=True) as router:
+
+            async def delayed_handler(request: httpx.Request) -> httpx.Response:
+                await asyncio.sleep(0.01)
+                return httpx.Response(200, json=page_2k)
+
+            router.post(DEFAULT_INFO_URL).mock(side_effect=delayed_handler)
+            async with InfoApiClient(rate_limiter=limiter, max_concurrency=4) as client:
+                await asyncio.gather(
+                    *[client.fetch_user_fills_by_time(user, max_pages=1) for _ in range(8)]
+                )
+
+        # 8 calls * (20 base + 100 extra) = 960 weight == 2x budget (480/min);
+        # requests 5..8 must wait past 60s instead of bypassing rate_limiter outside _semaphore.
+        assert now >= 60.0 - 1e-9
+
+    asyncio.run(scenario())
+
+
+def test_truncated_10k_handles_compressed_start_position_and_overlap_inflation() -> None:
+    async def scenario() -> None:
+        user = "0x1111111111111111111111111111111111111111"
+
+        # Case A: 500 compressed fills (< 2,000) where earliest BTC fill has startPosition != 0.0
+        compressed_page = [
+            _sample_fill(
+                time=10_000 + i * 1000,
+                tid=i,
+                start_pos="5.0" if i == 0 else "6.0",
+                tx_hash=f"0x{i:064x}",
+            )
+            for i in range(500)
+        ]
+        with respx.mock(assert_all_called=True) as router:
+            router.post(DEFAULT_INFO_URL).mock(
+                return_value=httpx.Response(200, json=compressed_page)
+            )
+            async with InfoApiClient(rate_limiter=_fast_limiter()) as client:
+                res_a = await client.fetch_user_fills_by_time(user, start_time=0)
+        assert res_a.truncated_10k is True
+
+        # Case B: 9,600 unique fills starting at startPosition=0.0 across 6 pages
+        # with 150-fill overlap per boundary -> raw_fetched_count == 10,200, deduped == 9,600.
+        all_fills = [
+            _sample_fill(
+                time=i * 1000,
+                tid=i,
+                start_pos="0.0" if i == 0 else str(i),
+                tx_hash=f"0x{i:064x}",
+            )
+            for i in range(9600)
+        ]
+        # 6 pages: 5*2000 + 350 = 10,350 raw items vs 9,600 unique fills (150-fill overlaps).
+        page_idx = 0
+        offsets = [0, 1850, 3700, 5550, 7400, 9250]
+        lengths = [2000, 2000, 2000, 2000, 2000, 350]
+
+        with respx.mock(assert_all_called=True) as router:
+
+            def overlap_handler(request: httpx.Request) -> httpx.Response:
+                nonlocal page_idx
+                start_idx = offsets[page_idx]
+                count = lengths[page_idx]
+                page_idx += 1
+                return httpx.Response(200, json=all_fills[start_idx : start_idx + count])
+
+            router.post(DEFAULT_INFO_URL).mock(side_effect=overlap_handler)
+            async with InfoApiClient(rate_limiter=_fast_limiter()) as client:
+                res_b = await client.fetch_user_fills_by_time(
+                    user, start_time=0, overlap_ms=150_000
+                )
+        assert res_b.raw_fetched_count == 10_350
+        assert len(res_b.fills) == 9600
+        assert res_b.truncated_10k is False
+
+    asyncio.run(scenario())
+
+
+def test_user_funding_empty_page_seed_and_500_item_saturated_timestamp() -> None:
+    async def scenario() -> None:
+        user = "0x2222222222222222222222222222222222222222"
+
+        # Case A: empty incremental response preserves seeded cursor & coins
+        with respx.mock(assert_all_called=True) as router:
+            router.post(DEFAULT_INFO_URL).mock(return_value=httpx.Response(200, json=[]))
+            async with InfoApiClient(rate_limiter=_fast_limiter()) as client:
+                res_empty = await client.fetch_user_funding(
+                    user,
+                    start_time=5000,
+                    seed_last_funding_coins=["ETH", "BTC"],
+                )
+        assert res_empty.last_funding_time == 5000
+        assert res_empty.last_funding_coins == ["BTC", "ETH"]
+
+        # Case B: 500 already-seen events at start_time=1000 (incl. non-zero hash) advances to 1001
+        seed_coins = [f"COIN{i}" for i in range(500)]
+        page1 = [
+            _sample_funding(
+                time=1000,
+                coin=c,
+                usdc="-1.0",
+                tx_hash=("0x" + "f" * 64) if i == 0 else ("0x" + "0" * 64),
+            )
+            for i, c in enumerate(seed_coins)
+        ]
+        page2 = [_sample_funding(time=2000, coin="BTC", usdc="12.5")]
+
+        seen_cursors: list[int] = []
+        with respx.mock(assert_all_called=True) as router:
+
+            def handler(request: httpx.Request) -> httpx.Response:
+                st = int(json.loads(request.content)["startTime"])
+                seen_cursors.append(st)
+                if st == 1000:
+                    return httpx.Response(200, json=page1)
+                assert st == 1001
+                return httpx.Response(200, json=page2)
+
+            router.post(DEFAULT_INFO_URL).mock(side_effect=handler)
+            async with InfoApiClient(rate_limiter=_fast_limiter()) as client:
+                res_sat = await client.fetch_user_funding(
+                    user,
+                    start_time=1000,
+                    seed_last_funding_coins=seed_coins,
+                )
+
+        assert seen_cursors == [1000, 1001]
+        assert res_sat.pages_fetched == 2
+        assert len(res_sat.events) == 1
+        assert res_sat.cum_funding_net == pytest.approx(12.5)
+        assert res_sat.last_funding_time == 2000
+        assert res_sat.last_funding_coins == ["BTC"]
+
+    asyncio.run(scenario())
+
+
+def test_fills_same_ms_cursor_saturation_makes_no_duplicate_request() -> None:
+    async def scenario() -> None:
+        user = "0x1111111111111111111111111111111111111111"
+        dense = [_sample_fill(time=500_000, tid=i, tx_hash=f"0x{i:064x}") for i in range(2000)]
+        next_fill = [_sample_fill(time=500_001, tid=9999, tx_hash="0x" + "9" * 64)]
+        seen_starts: list[int] = []
+
+        with respx.mock(assert_all_called=True) as router:
+
+            def handler(request: httpx.Request) -> httpx.Response:
+                st = int(json.loads(request.content)["startTime"])
+                seen_starts.append(st)
+                if st == 500_000:
+                    return httpx.Response(200, json=dense)
+                assert st == 500_001
+                return httpx.Response(200, json=next_fill)
+
+            router.post(DEFAULT_INFO_URL).mock(side_effect=handler)
+            async with InfoApiClient(rate_limiter=_fast_limiter()) as client:
+                res = await client.fetch_user_fills_by_time(
+                    user,
+                    start_time=500_000,
+                    include_initial_overlap=False,
+                    overlap_ms=60_000,
+                )
+
+        assert seen_starts == [500_000, 500_001]
+        assert res.pages_fetched == 2
+        assert len(res.fills) == 2001
+        assert len(res.warnings) == 1
+        assert "dense boundary guard" in res.warnings[0]
+
+    asyncio.run(scenario())
+
+
+def test_wire_contract_and_normalization_edge_guards() -> None:
+    # 1. Nullable entryPx on zero-size residual position
+    ch_zero = copy.deepcopy(_load_fixture("clearinghouseState_0x1f250df5.json"))
+    ch_zero["assetPositions"][0]["position"]["szi"] = "0.0"
+    ch_zero["assetPositions"][0]["position"]["entryPx"] = None
+    parsed_ch = ClearinghouseStateResponse.model_validate(ch_zero)
+    assert parsed_ch.assetPositions[0].position.entryPx is None
+
+    # 2. Optional evmEscrows on spotClearinghouseState
+    sp_evm = copy.deepcopy(_load_fixture("spotClearinghouseState_0x1f250df5.json"))
+    sp_evm["evmEscrows"] = [{"coin": "USDC", "total": "100.0"}]
+    parsed_sp = SpotClearinghouseStateResponse.model_validate(sp_evm)
+    assert parsed_sp.evmEscrows == [{"coin": "USDC", "total": "100.0"}]
+
+    # 3. Omitted feeToken on RawFill defaults to "USDC"
+    raw_dict = _sample_fill()
+    del raw_dict["feeToken"]
+    parsed_fill = RawFill.model_validate(raw_dict)
+    assert parsed_fill.feeToken == "USDC"
+
+    # 4. Auto-Deleveraging fallback & counterparty liquidation liq == 0 guard
+    user = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    other = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    adl_fill = RawFill.model_validate(
+        _sample_fill(
+            coin="BTC",
+            px="95000.0",
+            sz="1.0",
+            side="A",
+            time=1000,
+            start_pos="2.0",
+            dir_str="Auto-Deleveraging",
+            tid=1,
+            liquidation={"liquidatedUser": other, "markPx": "95000.0", "method": "market"},
+        )
+    )
+    norm, warns = normalize_fills([adl_fill], user)
+    assert len(norm) == 1
+    assert norm[0].dir_code == "CL"
+    assert norm[0].liq == 0
+    assert any("Auto-Deleveraging" in w for w in warns)
+
+    # 5. Negative addr_id rejected by aggregate_public_fill_rows
+    with pytest.raises(ValueError, match="addr_id"):
+        aggregate_public_fill_rows(norm, addr_id=-1)

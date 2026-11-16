@@ -122,7 +122,7 @@ class PositionLeverage(ContractModel):
 class AssetPositionDetail(ContractModel):
     coin: NonEmptyStr
     cumFunding: CumFunding
-    entryPx: DecimalStr
+    entryPx: DecimalStr | None = None
     leverage: PositionLeverage
     liquidationPx: DecimalStr | None = None
     marginUsed: DecimalStr
@@ -165,6 +165,7 @@ class SpotClearinghouseStateResponse(ContractModel):
     tokenToAvailableAfterMaintenance: list[tuple[NonNegInt, DecimalStr]] | None = None
     tokenToPortfolioBorrowRatio: list[tuple[NonNegInt, DecimalStr]] | None = None
     tokenToPortfolioSupplyRatio: list[tuple[NonNegInt, DecimalStr]] | None = None
+    evmEscrows: list[dict[str, object]] | None = None
 
 
 class SubAccountItem(ContractModel):
@@ -254,7 +255,7 @@ class RawFill(ContractModel):
     crossed: StrictBool
     fee: DecimalStr
     tid: NonNegInt
-    feeToken: NonEmptyStr
+    feeToken: NonEmptyStr | None = "USDC"
     twapId: NonNegInt | None = None
     builderFee: DecimalStr | None = None
     cloid: StrictStr | None = None

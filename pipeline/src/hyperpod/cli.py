@@ -220,12 +220,13 @@ def _summarize_debug_address(
         {
             "coin": ap.position.coin,
             "szi": float(ap.position.szi),
-            "entryPx": float(ap.position.entryPx),
+            "entryPx": float(ap.position.entryPx) if ap.position.entryPx is not None else None,
             "positionValue": float(ap.position.positionValue),
             "unrealizedPnl": float(ap.position.unrealizedPnl),
         }
         for ap in clearinghouse.assetPositions
         if is_main_perp_coin(ap.position.coin, main_perp_universe)
+        and abs(float(ap.position.szi)) > 0.0
     ]
     open_positions.sort(key=lambda item: str(item["coin"]))
 

@@ -179,3 +179,53 @@ def test_leaderboard_errors_when_no_cache_corrupt_cache_or_exceeds_max_bytes(
                     await client.fetch(cache_path=None)
 
     asyncio.run(scenario())
+
+
+def test_leaderboard_shared_rate_limiter_telemetry_and_consecutive_429_reset() -> None:
+    async def scenario() -> None:
+        # 1. Final-attempt 429 updates http_429_count and triggers consecutive-429 halving
+        limiter_429 = _fast_limiter(max_retries=1)
+        with respx.mock(assert_all_called=True) as router:
+            router.get(DEFAULT_LEADERBOARD_URL).mock(return_value=httpx.Response(429))
+            async with LeaderboardClient(max_retries=1, rate_limiter=limiter_429) as client:
+                with pytest.raises(LeaderboardFetchError, match="HTTP 429"):
+                    await client.fetch(cache_path=None)
+
+        assert limiter_429.stats.http_429_count == 2
+        assert limiter_429.is_halved() is True
+
+        # 2. 429 followed by 200 OK resets consecutive-429 counter on shared limiter
+        limiter_reset = _fast_limiter(max_retries=1)
+        calls = 0
+        payload = _sample_leaderboard_payload()
+        with respx.mock(assert_all_called=True) as router:
+
+            def recovery_handler(request: httpx.Request) -> httpx.Response:
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    return httpx.Response(429)
+                return httpx.Response(200, json=payload)
+
+            router.get(DEFAULT_LEADERBOARD_URL).mock(side_effect=recovery_handler)
+            async with LeaderboardClient(max_retries=1, rate_limiter=limiter_reset) as client:
+                res = await client.fetch(cache_path=None)
+
+        assert not res.used_fallback
+        assert limiter_reset.stats.http_429_count == 1
+        assert limiter_reset._consecutive_429s == 0
+        # A single subsequent 429 must NOT halve the budget because 200 OK reset the streak.
+        await limiter_reset.record_response(429)
+        assert limiter_reset.is_halved() is False
+
+        # 3. Exhausted transport error updates transport_error_count on shared limiter
+        limiter_tx = _fast_limiter(max_retries=0)
+        with respx.mock(assert_all_called=True) as router:
+            router.get(DEFAULT_LEADERBOARD_URL).mock(side_effect=httpx.ConnectError("boom"))
+            async with LeaderboardClient(max_retries=0, rate_limiter=limiter_tx) as client:
+                with pytest.raises(LeaderboardFetchError, match="transport failure"):
+                    await client.fetch(cache_path=None)
+
+        assert limiter_tx.stats.transport_error_count == 1
+
+    asyncio.run(scenario())

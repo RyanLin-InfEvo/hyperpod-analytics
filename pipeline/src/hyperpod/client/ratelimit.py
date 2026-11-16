@@ -256,6 +256,12 @@ class WeightRateLimiter:
         async with self._state_lock:
             self._record_response_locked(status_code)
 
+    async def record_transport_error(self) -> None:
+        """Record a terminal transport failure and reset consecutive-429 streak."""
+        async with self._state_lock:
+            self._stats.transport_error_count += 1
+            self._consecutive_429s = 0
+
     def _record_response_locked(self, status_code: int) -> None:
         now = self._clock()
         if status_code == 429:

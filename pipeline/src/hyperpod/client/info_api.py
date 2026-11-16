@@ -296,7 +296,9 @@ def normalize_fills(
             continue
 
         dir_lower = fill.dir.lower()
-        if is_self_liq or any(tok in dir_lower for tok in ("liquidat", "adl", "settl")):
+        if is_self_liq or any(
+            tok in dir_lower for tok in ("liquidat", "adl", "deleverag", "settl")
+        ):
             if start_pos > 0.0:
                 derived_dir: DirCode = "CL"
             elif start_pos < 0.0:
@@ -307,6 +309,7 @@ def normalize_fills(
                 f"Fallback liquidation/settlement dir {fill.dir!r} mapped to {derived_dir} "
                 f"for {fill.coin} at t={fill.time} (startPosition={start_pos}, side={fill.side})"
             )
+            fallback_liq: LiqFlag = 0 if (fill.liquidation is not None and not is_self_liq) else 1
             normalized.append(
                 NormalizedFill(
                     coin=fill.coin,
@@ -321,7 +324,7 @@ def normalize_fills(
                     fee=fee,
                     start_position=start_pos,
                     crossed=fill.crossed,
-                    liq=1,
+                    liq=fallback_liq,
                     tid=fill.tid,
                     oid=fill.oid,
                     hash=fill.hash,
@@ -349,6 +352,8 @@ def aggregate_public_fill_rows(
 
     Rows sharing `(time, addr_id, dir_code, liq)` are merged with VWAP px and summed sz/notional.
     """
+    if addr_id < 0:
+        raise ValueError("addr_id must be >= 0")
     buckets: dict[str, dict[tuple[int, int, DirCode, LiqFlag], list[float]]] = defaultdict(dict)
     for fill in fills:
         if fill.px <= 0.0 or fill.sz <= 0.0:
@@ -463,42 +468,50 @@ class InfoApiClient:
         max_retries = self.rate_limiter.max_retries
 
         for attempt in range(max_retries + 1):
-            await self.rate_limiter.acquire(base_weight, endpoint=endpoint_type)
-            try:
-                async with self._semaphore:
+            retry_status: int | None = None
+            retry_transport = False
+
+            async with self._semaphore:
+                await self.rate_limiter.acquire(base_weight, endpoint=endpoint_type)
+                try:
                     resp = await self._client.post(self.info_url, json=payload)
-            except (httpx.TransportError, httpx.DecodingError, httpx.StreamError) as exc:
-                if attempt < max_retries:
-                    await self.rate_limiter.wait_for_retry(attempt, is_transport_error=True)
-                    continue
-                self.rate_limiter.stats.transport_error_count += 1
-                raise ApiTransportError(endpoint_type, str(exc)) from exc
+                except (httpx.TransportError, httpx.DecodingError, httpx.StreamError) as exc:
+                    if attempt < max_retries:
+                        retry_transport = True
+                    else:
+                        await self.rate_limiter.record_transport_error()
+                        raise ApiTransportError(endpoint_type, str(exc)) from exc
+                else:
+                    status = resp.status_code
+                    if status == 429 or 500 <= status < 600:
+                        if attempt < max_retries:
+                            retry_status = status
+                        else:
+                            await self.rate_limiter.record_response(status)
+                            raise ApiHttpError(endpoint_type, status, resp.text[:300])
+                    else:
+                        await self.rate_limiter.record_response(status)
+                        if status >= 400:
+                            raise ApiHttpError(endpoint_type, status, resp.text[:300])
 
-            status = resp.status_code
-            if status == 429 or 500 <= status < 600:
-                if attempt < max_retries:
-                    await self.rate_limiter.wait_for_retry(attempt, status_code=status)
-                    continue
-                await self.rate_limiter.record_response(status)
-                raise ApiHttpError(endpoint_type, status, resp.text[:300])
+                        try:
+                            data: Any = resp.json()
+                        except ValueError as exc:
+                            raise InfoApiError(
+                                f"Hyperliquid Info API {endpoint_type} returned invalid JSON"
+                            ) from exc
 
-            await self.rate_limiter.record_response(status)
-            if status >= 400:
-                raise ApiHttpError(endpoint_type, status, resp.text[:300])
+                        if item_counter is not None:
+                            count = int(item_counter(data))
+                            extra = compute_dynamic_extra_weight(endpoint_type, count)
+                            await self.rate_limiter.adjust(extra, endpoint=endpoint_type)
 
-            try:
-                data: Any = resp.json()
-            except ValueError as exc:
-                raise InfoApiError(
-                    f"Hyperliquid Info API {endpoint_type} returned invalid JSON"
-                ) from exc
+                        return data
 
-            if item_counter is not None:
-                count = int(item_counter(data))
-                extra = compute_dynamic_extra_weight(endpoint_type, count)
-                await self.rate_limiter.adjust(extra, endpoint=endpoint_type)
-
-            return data
+            if retry_transport:
+                await self.rate_limiter.wait_for_retry(attempt, is_transport_error=True)
+            elif retry_status is not None:
+                await self.rate_limiter.wait_for_retry(attempt, status_code=retry_status)
 
         raise InfoApiError(f"Unreachable retry loop exit for {endpoint_type}")  # pragma: no cover
 
@@ -594,6 +607,7 @@ class InfoApiClient:
             else start_time
         )
         seen_keys: set[tuple[int, int, str, str, str]] = set(seed_keys)
+        initial_seed_empty = len(seen_keys) == 0
         deduped: list[tuple[int, RawFill]] = []
         warnings: list[str] = []
         seq_idx = 0
@@ -671,14 +685,30 @@ class InfoApiClient:
                     exact_ms_retry_for = last_t
                     cursor = last_t
                 else:
-                    # All 2,000 fills fell on exact `cursor` timestamp; next iteration hits added==0
-                    # and the dense boundary guard advances to last_t + 1.
-                    exact_ms_retry_for = last_t
-                    cursor = last_t
+                    # All 2,000 fills fell on `cursor`; advance to last_t + 1 directly.
+                    next_ms = last_t + 1
+                    warnings.append(
+                        f"userFillsByTime dense boundary guard triggered at t={last_t} for {user}; "
+                        f"advancing cursor to {next_ms}"
+                    )
+                    exact_ms_retry_for = None
+                    cursor = next_ms
             else:
                 cursor = candidate_cursor
 
-        truncated_10k = len(deduped) >= 10_000 or raw_count >= 10_000
+        has_nonzero_initial_start_pos = False
+        if start_time == 0 and initial_seed_empty:
+            first_seen_coins: set[str] = set()
+            for _, fill in deduped:
+                if not is_main_perp_coin(fill.coin):
+                    continue
+                if fill.coin not in first_seen_coins:
+                    first_seen_coins.add(fill.coin)
+                    if abs(float(fill.startPosition)) > 1e-12:
+                        has_nonzero_initial_start_pos = True
+                        break
+
+        truncated_10k = len(deduped) >= 10_000 or has_nonzero_initial_start_pos
         return FillsPageResult(
             fills=deduped,
             pages_fetched=pages,
@@ -716,10 +746,12 @@ class InfoApiClient:
 
         events: list[UserFundingEvent] = []
         pages = 0
-        max_raw_t: int | None = None
+        max_raw_t: int | None = start_time if seed_coins else None
 
         while True:
             if max_pages is not None and pages >= max_pages:
+                break
+            if end_time is not None and cursor > end_time:
                 break
 
             payload: dict[str, Any] = {
@@ -750,15 +782,16 @@ class InfoApiClient:
                     max_raw_t = ev.time
 
                 key = (ev.time, ev.hash, ev.delta.coin)
-                if key not in seen_keys:
+                is_seeded_boundary = ev.time == start_time and ev.delta.coin in seed_coins
+                if key not in seen_keys and not is_seeded_boundary:
                     seen_keys.add(key)
                     events.append(ev)
                     added += 1
 
-            if len(page) < _FUNDING_PAGE_LIMIT or added == 0:
+            if len(page) < _FUNDING_PAGE_LIMIT:
                 break
 
-            cursor = page[-1].time
+            cursor = (page[-1].time + 1) if added == 0 else page[-1].time
 
         main_perp_events = [
             ev for ev in events if is_main_perp_coin(ev.delta.coin, main_perp_universe)

@@ -158,6 +158,32 @@ def test_debug_address_fixtures_dir_and_validation_errors(tmp_path: Path) -> Non
     assert missing_res.exit_code == 1
     assert "Missing fixture file" in missing_res.output
 
+    # Residual zero-size isolated position with entryPx=null is excluded from openPositions
+    addr = "0x1f250df59a777d61cb8bd043c12970f3afe4f925"
+    short = "0x1f250df5"
+    fixture_copy = tmp_path / "api_zero_pos"
+    fixture_copy.mkdir()
+    for ep in (
+        "userRole",
+        "userAbstraction",
+        "subAccounts",
+        "clearinghouseState",
+        "spotClearinghouseState",
+        "portfolio",
+        "userFillsByTime",
+        "userFunding",
+    ):
+        data = _load_fixture(f"{ep}_{short}.json")
+        if ep == "clearinghouseState":
+            data["assetPositions"][0]["position"]["szi"] = "0.0"
+            data["assetPositions"][0]["position"]["entryPx"] = None
+        (fixture_copy / f"{ep}_{short}.json").write_text(json.dumps(data), encoding="utf-8")
+
+    res_zero = runner.invoke(app, ["debug-address", addr, "--fixtures-dir", str(fixture_copy)])
+    assert res_zero.exit_code == 0, res_zero.output
+    zero_data = json.loads(res_zero.output)
+    assert zero_data["openPositionsCount"] == 0
+
 
 @pytest.mark.live
 def test_debug_address_live_hyperliquid_api() -> None:

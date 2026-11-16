@@ -120,7 +120,11 @@ class LeaderboardClient:
                         if attempt < self.max_retries:
                             await self._wait_retry(attempt, status_code=status)
                             continue
+                        if self.rate_limiter is not None:
+                            await self.rate_limiter.record_response(status)
                         raise LeaderboardFetchError(f"Leaderboard endpoint returned HTTP {status}")
+                    if self.rate_limiter is not None:
+                        await self.rate_limiter.record_response(status)
                     if status >= 400:
                         raise LeaderboardFetchError(f"Leaderboard endpoint returned HTTP {status}")
 
@@ -147,6 +151,8 @@ class LeaderboardClient:
                 if attempt < self.max_retries:
                     await self._wait_retry(attempt, is_transport_error=True)
                     continue
+                if self.rate_limiter is not None:
+                    await self.rate_limiter.record_transport_error()
                 raise LeaderboardFetchError(f"Leaderboard transport failure: {exc}") from exc
 
             raw_bytes = bytes(buf)
