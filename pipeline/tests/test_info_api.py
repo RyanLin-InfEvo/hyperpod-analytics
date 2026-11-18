@@ -1067,3 +1067,39 @@ def test_wire_contract_and_normalization_edge_guards() -> None:
     # 5. Negative addr_id rejected by aggregate_public_fill_rows
     with pytest.raises(ValueError, match="addr_id"):
         aggregate_public_fill_rows(norm, addr_id=-1)
+
+
+def test_spot_clearinghouse_state_allows_missing_token_and_spot_hold() -> None:
+    spot_payload = {
+        "balances": [
+            {
+                "coin": "USDC",
+                "token": 0,
+                "total": "1500000.0",
+                "hold": "0.0",
+                "spotHold": "1364499.6734719994",
+                "entryNtl": "0.0",
+            },
+            {
+                "coin": "+14730",
+                "total": "100.0",
+                "hold": "0.0",
+                "entryNtl": "1942.84191",
+            },
+        ]
+    }
+    parsed_spot = SpotClearinghouseStateResponse.model_validate(spot_payload)
+    assert parsed_spot.balances[0].spotHold == "1364499.6734719994"
+    assert parsed_spot.balances[1].token is None
+    assert parsed_spot.balances[1].coin == "+14730"
+
+    sub_payload = {
+        "name": "sub-1",
+        "subAccountUser": "0x2222222222222222222222222222222222222222",
+        "master": "0x1111111111111111111111111111111111111111",
+        "clearinghouseState": _load_fixture("clearinghouseState_0x1f250df5.json"),
+        "spotState": spot_payload,
+    }
+    parsed_sub = SubAccountItem.model_validate(sub_payload)
+    assert parsed_sub.spotState.balances[0].spotHold == "1364499.6734719994"
+    assert parsed_sub.spotState.balances[1].token is None

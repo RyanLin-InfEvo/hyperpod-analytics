@@ -592,6 +592,7 @@ class InfoApiClient:
         include_initial_overlap: bool = True,
         max_pages: int | None = None,
         seed_keys: Iterable[tuple[int, int, str, str, str]] = (),
+        main_perp_universe: set[str] | None = None,
     ) -> FillsPageResult:
         """Paginate `userFillsByTime(aggregateByTime=True)` inclusively (§5.2, ADR-0002)."""
         if start_time < 0:
@@ -700,7 +701,7 @@ class InfoApiClient:
         if start_time == 0 and initial_seed_empty:
             first_seen_coins: set[str] = set()
             for _, fill in deduped:
-                if not is_main_perp_coin(fill.coin):
+                if not is_main_perp_coin(fill.coin, main_perp_universe):
                     continue
                 if fill.coin not in first_seen_coins:
                     first_seen_coins.add(fill.coin)

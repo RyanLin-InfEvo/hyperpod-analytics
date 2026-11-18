@@ -16,6 +16,7 @@ from typing import Annotated, Any
 import typer
 
 from hyperpod.client.info_api import (
+    DEFAULT_INFO_URL,
     FillsPageResult,
     FundingPageResult,
     InfoApiClient,
@@ -24,6 +25,7 @@ from hyperpod.client.info_api import (
     is_main_perp_coin,
     normalize_fills,
 )
+from hyperpod.client.leaderboard import DEFAULT_LEADERBOARD_URL, LeaderboardFetchError
 from hyperpod.client.ratelimit import WeightRateLimiter
 from hyperpod.config import PipelineConfig, default_config_path, load_config
 from hyperpod.models import (
@@ -42,6 +44,8 @@ from hyperpod.models import (
     Whitelist,
     validate_candles,
 )
+from hyperpod.scoring.daily_runner import run_backfill, run_discover, run_score
+from hyperpod.storage.state_store import StateStore
 
 _ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 
@@ -477,25 +481,250 @@ def debug_address(
     typer.echo(json.dumps(summary, indent=2))
 
 
+def _default_state_dir() -> Path:
+    return _repo_root() / "state"
+
+
+def _default_seed_file() -> Path:
+    return _repo_root() / "config" / "seed_addresses.txt"
+
+
+def _default_blocklist_file() -> Path:
+    return _repo_root() / "config" / "blocklist.txt"
+
+
 @app.command("discover")
-def discover() -> None:
+def discover(
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    seed_file: Annotated[
+        Path | None, typer.Option("--seed-file", help="Path to seed_addresses.txt")
+    ] = None,
+    blocklist_file: Annotated[
+        Path | None, typer.Option("--blocklist-file", help="Path to blocklist.txt")
+    ] = None,
+    leaderboard_url: Annotated[
+        str, typer.Option("--leaderboard-url", help="Hyperliquid leaderboard URL")
+    ] = DEFAULT_LEADERBOARD_URL,
+) -> None:
     """Discover Stage 1 candidates from Hyperliquid leaderboard (Phase 3)."""
-    _not_implemented("discover", "Phase 3")
+    cfg = load_config(config_path or default_config_path())
+    store = StateStore(state_dir or _default_state_dir(), owner="daily")
+    try:
+        discovered = asyncio.run(
+            run_discover(
+                cfg,
+                store,
+                seed_file=seed_file or _default_seed_file(),
+                blocklist_file=blocklist_file or _default_blocklist_file(),
+                leaderboard_url=leaderboard_url,
+            )
+        )
+    except (FileNotFoundError, LeaderboardFetchError, ValueError) as exc:
+        typer.echo(f"discover failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    summary = {
+        "generatedAt": discovered.generatedAt,
+        "totalLeaderboardRows": discovered.totalLeaderboardRows,
+        "passedLeaderboardCount": discovered.passedLeaderboardCount,
+        "seedAddedCount": discovered.seedAddedCount,
+        "activeWhitelistAddedCount": discovered.activeWhitelistAddedCount,
+        "blocklistedCount": discovered.blocklistedCount,
+        "totalCandidates": len(discovered.candidates),
+        "usedLeaderboardFallback": discovered.usedLeaderboardFallback,
+        "rejectedCounts": discovered.rejectedCounts,
+        "warnings": discovered.warnings,
+    }
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("score")
-def score() -> None:
+def score(
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Optional public site data directory for outputs"),
+    ] = None,
+    seed_file: Annotated[
+        Path | None, typer.Option("--seed-file", help="Path to seed_addresses.txt")
+    ] = None,
+    blocklist_file: Annotated[
+        Path | None, typer.Option("--blocklist-file", help="Path to blocklist.txt")
+    ] = None,
+    limit: Annotated[
+        int | None, typer.Option("--limit", min=1, help="Optional cap on evaluated candidates")
+    ] = None,
+    offline: Annotated[
+        bool,
+        typer.Option("--offline", help="Score using persisted state/daily shards without network"),
+    ] = False,
+    refresh_discover: Annotated[
+        bool,
+        typer.Option("--refresh-discover", help="Re-run leaderboard discover before scoring"),
+    ] = False,
+    max_fill_pages: Annotated[
+        int | None, typer.Option("--max-fill-pages", min=1, help="Optional fill page cap")
+    ] = None,
+    max_funding_pages: Annotated[
+        int | None, typer.Option("--max-funding-pages", min=1, help="Optional funding page cap")
+    ] = None,
+    local_budget: Annotated[
+        bool,
+        typer.Option("--local-budget/--ci-budget", help="Select local vs CI rate-limit budget"),
+    ] = False,
+    leaderboard_url: Annotated[
+        str, typer.Option("--leaderboard-url", help="Hyperliquid leaderboard URL")
+    ] = DEFAULT_LEADERBOARD_URL,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
+) -> None:
     """Score Stage 2 candidates and update whitelist state (Phase 3)."""
-    _not_implemented("score", "Phase 3")
+    cfg = load_config(config_path or default_config_path())
+    store = StateStore(state_dir or _default_state_dir(), owner="daily")
+    try:
+        res = asyncio.run(
+            run_score(
+                cfg,
+                store,
+                seed_file=seed_file or _default_seed_file(),
+                blocklist_file=blocklist_file or _default_blocklist_file(),
+                schemas_dir=_repo_root() / "schemas",
+                data_dir=data_dir,
+                limit=limit,
+                offline=offline,
+                refresh_discover=refresh_discover,
+                local_budget=local_budget,
+                max_fill_pages=max_fill_pages,
+                max_funding_pages=max_funding_pages,
+                leaderboard_url=leaderboard_url,
+                info_url=info_url,
+            )
+        )
+    except (FileNotFoundError, InfoApiError, LeaderboardFetchError, ValueError) as exc:
+        typer.echo(f"score failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    wl_upd = res.whitelist_update
+    summary = {
+        "whitelistVersion": wl_upd.whitelist.version,
+        "criteriaVersion": wl_upd.criteria.current.version,
+        "evaluatedCount": res.evaluated_count,
+        "passedCount": wl_upd.criteria.current.stats.passed,
+        "activeWhitelistCount": wl_upd.active_count,
+        "totalWhitelistRecords": len(wl_upd.whitelist.addresses),
+        "newlyEntered": wl_upd.newly_entered,
+        "newlyExited": wl_upd.newly_exited,
+        "expandedSubaccounts": res.expanded_subaccounts,
+        "rejectedBy": wl_upd.criteria.current.stats.rejectedBy,
+        "trackedCoins": [c.coin for c in wl_upd.state.coins if c.trackedTo is None],
+        "coinBackfillQueue": wl_upd.state.coinBackfillQueue,
+        "errors": res.errors,
+        "pruneStats": res.prune_stats,
+        "writtenFiles": [str(p) for p in res.written_files],
+        "warnings": res.warnings,
+        "rateLimitStats": res.rate_limit_stats,
+    }
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("backfill")
 def backfill(
-    budget_minutes: Annotated[int | None, typer.Option("--budget-minutes")] = None,
+    budget_minutes: Annotated[
+        float | None,
+        typer.Option("--budget-minutes", min=0.0, help="Stop cleanly after N minutes"),
+    ] = None,
+    checkpoint_every: Annotated[
+        int,
+        typer.Option("--checkpoint-every", min=1, help="Flush shards/cursor every N addresses"),
+    ] = 20,
+    limit: Annotated[
+        int | None, typer.Option("--limit", min=1, help="Optional cap on candidates this run")
+    ] = None,
+    restart: Annotated[
+        bool, typer.Option("--restart", help="Ignore prior incomplete backfill_cursor.json")
+    ] = False,
+    refresh_discover: Annotated[
+        bool, typer.Option("--refresh-discover", help="Re-run leaderboard discover on fresh start")
+    ] = False,
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    seed_file: Annotated[
+        Path | None, typer.Option("--seed-file", help="Path to seed_addresses.txt")
+    ] = None,
+    blocklist_file: Annotated[
+        Path | None, typer.Option("--blocklist-file", help="Path to blocklist.txt")
+    ] = None,
+    max_fill_pages: Annotated[
+        int | None, typer.Option("--max-fill-pages", min=1, help="Optional fill page cap")
+    ] = None,
+    max_funding_pages: Annotated[
+        int | None, typer.Option("--max-funding-pages", min=1, help="Optional funding page cap")
+    ] = None,
+    local_budget: Annotated[
+        bool,
+        typer.Option("--local-budget/--ci-budget", help="Select local vs CI rate-limit budget"),
+    ] = True,
+    leaderboard_url: Annotated[
+        str, typer.Option("--leaderboard-url", help="Hyperliquid leaderboard URL")
+    ] = DEFAULT_LEADERBOARD_URL,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
 ) -> None:
     """Backfill candidate fills and scoring history with checkpointing (Phase 3)."""
-    _ = budget_minutes
-    _not_implemented("backfill", "Phase 3")
+    cfg = load_config(config_path or default_config_path())
+    store = StateStore(state_dir or _default_state_dir(), owner="daily")
+    try:
+        res = asyncio.run(
+            run_backfill(
+                cfg,
+                store,
+                seed_file=seed_file or _default_seed_file(),
+                blocklist_file=blocklist_file or _default_blocklist_file(),
+                budget_minutes=budget_minutes,
+                checkpoint_every=checkpoint_every,
+                limit=limit,
+                restart=restart,
+                refresh_discover=refresh_discover,
+                local_budget=local_budget,
+                max_fill_pages=max_fill_pages,
+                max_funding_pages=max_funding_pages,
+                leaderboard_url=leaderboard_url,
+                info_url=info_url,
+            )
+        )
+    except (FileNotFoundError, InfoApiError, LeaderboardFetchError, ValueError) as exc:
+        typer.echo(f"backfill failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    summary = {
+        "completed": res.completed,
+        "processedThisRun": res.processed_this_run,
+        "totalProcessed": res.total_processed,
+        "totalCandidates": res.total_candidates,
+        "nextIndex": res.next_index,
+        "expandedSubaccounts": res.expanded_subaccounts,
+        "errors": res.errors,
+        "budgetExhausted": res.budget_exhausted,
+        "warnings": res.warnings,
+        "rateLimitStats": res.rate_limit_stats,
+    }
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("snapshot")

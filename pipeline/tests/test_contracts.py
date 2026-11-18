@@ -235,7 +235,7 @@ def test_cli_validate_contracts_and_phase_stubs() -> None:
     assert res.exit_code == 0, res.output
     assert "Validated config v1" in res.output
 
-    stub = runner.invoke(app, ["discover"])
+    stub = runner.invoke(app, ["snapshot"])
     assert stub.exit_code == 2
 
 

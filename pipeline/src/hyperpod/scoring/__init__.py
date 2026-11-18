@@ -1,4 +1,87 @@
 # SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Trade reconstruction, scoring metrics, filters, and whitelist subpackage (Phase 3)."""
+"""Trade reconstruction, scoring metrics, hard gates, and whitelist state machine."""
+
+from hyperpod.scoring.filters import evaluate_gates, evaluate_role_gate
+from hyperpod.scoring.metrics import (
+    build_whitelist_metrics,
+    compute_equity,
+    compute_fills_per_day,
+    compute_funding_share,
+    compute_hedge_ratio,
+    compute_history_days,
+    compute_maker_ratio,
+    compute_max_drawdown,
+    compute_median_hold_minutes,
+    compute_n_trades,
+    compute_profit_factor,
+    compute_profit_factor_robust,
+    compute_top_win_share,
+    compute_turnover_month,
+    compute_win_rate,
+    derive_portfolio_fallbacks,
+)
+from hyperpod.scoring.trades import (
+    ClosedTrade,
+    ClosedTradeTuple,
+    FillDedupKey,
+    FillIngestionResult,
+    OpenTradeState,
+    TradeReconstructionResult,
+    ingest_raw_fills_incremental,
+    quantize_size,
+    raw_fill_dedup_key,
+    reconstruct_trades_incremental,
+)
+from hyperpod.scoring.whitelist import (
+    CandidateEvaluation,
+    WhitelistMemberRecord,
+    WhitelistStateRecord,
+    WhitelistUpdateResult,
+    compute_composite_scores,
+    compute_criteria_hash,
+    update_criteria_state,
+    update_tracked_coins,
+    update_whitelist_membership,
+)
+
+__all__ = [
+    "CandidateEvaluation",
+    "ClosedTrade",
+    "ClosedTradeTuple",
+    "FillDedupKey",
+    "FillIngestionResult",
+    "OpenTradeState",
+    "TradeReconstructionResult",
+    "WhitelistMemberRecord",
+    "WhitelistStateRecord",
+    "WhitelistUpdateResult",
+    "build_whitelist_metrics",
+    "compute_composite_scores",
+    "compute_criteria_hash",
+    "compute_equity",
+    "compute_fills_per_day",
+    "compute_funding_share",
+    "compute_hedge_ratio",
+    "compute_history_days",
+    "compute_maker_ratio",
+    "compute_max_drawdown",
+    "compute_median_hold_minutes",
+    "compute_n_trades",
+    "compute_profit_factor",
+    "compute_profit_factor_robust",
+    "compute_top_win_share",
+    "compute_turnover_month",
+    "compute_win_rate",
+    "derive_portfolio_fallbacks",
+    "evaluate_gates",
+    "evaluate_role_gate",
+    "ingest_raw_fills_incremental",
+    "quantize_size",
+    "raw_fill_dedup_key",
+    "reconstruct_trades_incremental",
+    "update_criteria_state",
+    "update_tracked_coins",
+    "update_whitelist_membership",
+]

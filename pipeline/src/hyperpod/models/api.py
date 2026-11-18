@@ -149,9 +149,10 @@ class ClearinghouseStateResponse(ContractModel):
 
 class SpotBalance(ContractModel):
     coin: NonEmptyStr
-    token: NonNegInt
+    token: NonNegInt | None = None
     total: DecimalStr
     hold: DecimalStr
+    spotHold: DecimalStr | None = None
     entryNtl: DecimalStr
     ltv: DecimalStr | None = None
     supplied: DecimalStr | None = None
