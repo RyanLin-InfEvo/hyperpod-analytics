@@ -11,6 +11,10 @@
 secrets/
 *credentials*.json
 
+# Local pipeline state & generated site data (never commit branch outputs to main)
+/state/
+/data/
+
 # Python / uv
 .venv/
 __pycache__/
