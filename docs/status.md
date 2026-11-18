@@ -5,10 +5,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 # HyperPod Cross-Session Status (`docs/status.md`)
 
-- `currentPhase`: `Phase 2`
-- `currentTask`: `2.4 (Phase 2 Complete — Awaiting User Review)`
+- `currentPhase`: `Phase 3`
+- `currentTask`: `3.5 (Phase 3 Complete — Awaiting User Review)`
 - `state`: `WAITING_USER_REVIEW`
-- `lastUpdated`: `2026-11-16T09:42:00+08:00`
+- `lastUpdated`: `2026-11-18T18:20:35+08:00`
 
 ## Completed Commits & Artifacts
 - `2d8db9f` — Initial repo state on `main` (`Add gitignore and README`)
@@ -32,10 +32,16 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - `a0a58f4` — Task 2.4: `hyperpod debug-address` (`pipeline/src/hyperpod/cli.py`, `pipeline/tests/test_debug_address.py`)
 - `d9437c5` — `fix(client): resolve Phase 2 adversarial audit findings across client, models, and CLI` (remediated `3 MAJOR`, `3 MINOR`; `94.59%` `hyperpod.client` coverage; secondary audit `PASS`)
 - Phase 2 Gate Report: [`docs/phase-reports/phase-2.md`](phase-reports/phase-2.md)
+- `578b413` — Task 3.1: UTC time helpers & Stage 1 prefilter / subaccount expansion (`pipeline/src/hyperpod/util/time.py`, `pipeline/src/hyperpod/discovery/prefilter.py`, `pipeline/tests/test_prefilter.py`, `.gitignore`)
+- `1c5940c` — Task 3.2: Incremental round-trip trade reconstruction & Hypothesis equivalence tests (`pipeline/src/hyperpod/scoring/trades.py`, `pipeline/tests/test_trades.py`)
+- `227ead0` — Task 3.3: All `14` `§5.4` metrics, `ADR-0001` equity, and `portfolio` fallbacks (`pipeline/src/hyperpod/scoring/metrics.py`, `pipeline/tests/test_metrics.py`)
+- `b5d0984` — Task 3.4: Hard gates, conditional whitelist state machine, criteria hash, and tracked coin scheduler (`pipeline/src/hyperpod/scoring/filters.py`, `pipeline/src/hyperpod/scoring/whitelist.py`, `pipeline/tests/test_filters_whitelist.py`)
+- `0bbf8cd` — Task 3.5 & Live Verification: Partitioned `StateStore`, `daily_runner`, `discover`/`score`/`backfill` CLI, `SpotBalance` live wire fix, and [`docs/research/first-whitelist.md`](research/first-whitelist.md)
+- Phase 3 Gate Report: [`docs/phase-reports/phase-3.md`](phase-reports/phase-3.md)
 
 ## Active Background Jobs
 - None
 
 ## Pending User Actions / Proposals (§11.2 / §11.3 / §13)
-1. **Review Phase 2 Gate Report (`docs/phase-reports/phase-2.md`):** Authorize proceeding to **Phase 3 — 候選發現與評分 (`3.1`–`3.5`)**.
+1. **Manual Whitelist Spot-Check (`§13`):** Spot-check the 5 addresses in [`docs/research/first-whitelist.md`](research/first-whitelist.md) on Hyperliquid Explorer, confirm whether `§5.4` `maxDrawdown` stays verbatim or warrants a `§11.2` proposal, and authorize starting Phase 4.
 2. **GitHub Actions & Remote Push (`§13`):** Confirm GitHub Repo `Settings → Actions → General → Workflow permissions` is set to **Read and write permissions**, push local `main` commits to `origin`, and verify `ci.yml` passes on GitHub Actions.
