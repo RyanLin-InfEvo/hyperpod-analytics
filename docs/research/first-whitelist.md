@@ -154,3 +154,23 @@ Please cross-check these 5 diverse live addresses on the Hyperliquid Explorer to
    - **Address:** `0xf5a523b171032c060d49c39fbf2e9bec473e1286`
    - **Explorer:** https://app.hyperliquid.xyz/explorer/address/0xf5a523b171032c060d49c39fbf2e9bec473e1286
    - **Check Focus:** `$1.89M` `disabled` perp AV, `pfRobust = 1.826`, `mdd = 0.046`, `77` trades, but `medianHoldMinutes = 2.97m` (`< 5m`), `makerRatio = 0.966` (`> 0.9`), and `turnoverMonth = 51.1x` (`> 30x`) — illustrating exact `hft` + `mm` gate exclusion despite strong headline stats.
+
+---
+
+## 6. Browser Spot-Check Verification (`2026-11-19`)
+
+All 5 spotlight addresses were verified via headless browser (`1d8f0bde-bdbe-4af4-b159-9cc3b92f8bf8`, HTTP `200`, zero CAPTCHA/bot gates) across both official [`app.hyperliquid.xyz`](https://app.hyperliquid.xyz) and public analytics UI [`hyperdash.com`](https://hyperdash.com):
+
+1. **Official Hyperliquid Explorer (`app.hyperliquid.xyz/explorer/address/<addr>`):**
+   - Confirmed all `5` addresses are active live accounts (`1-10 of 300` paginated transactions extending to `2026-11-18`–`11-19`, including `Place order` / `Cancel order` / `BorrowLend` / `SendToEvmWithData`).
+   - **UI Scope Note:** `/explorer/address/<addr>` displays only raw transaction logs (`Hash`, `Action`, `Block`, `Time`, `User`) without Account Value, PnL, or Open Positions; `/portfolio` shows `$0.00` without an active wallet signature and offers no arbitrary-address lookup.
+2. **Independent Numerical Cross-Check (`hyperdash.com/address/<addr>`):**
+
+| # | Address | HyperPod (`2026-11-18`) AV / All-Time PnL | Hyperdash (`2026-11-19`) AV (Perp / Spot) & Combined PnL | Hyperdash Open Positions, Style & Match Notes |
+|---|---|---|---|---|
+| 1 | `0xe9ec1d90652e13521623fb048f1c77883c597859` | `` `$1,265,774` `` (`perp+spot`) / `` `+$270,732` `` | **AV:** `` `$1,265,164.57` `` (Perps `` `$1,265,104.33` ``, Spot `` `$60.24` ``)<br>**Combined PnL:** `` `+$355,873.78` `` (`30D Perps: +$302,224.91`) | **`4` Shorts (`100% Short`, `Swing`):** `SOL` (`-12.39K`), `HOOD`, `BTC`, `ETH`; exact match to HyperPod `BTC`/`ETH`/`SOL` main-perp shorts + `xyz:HOOD` HIP-3 isolation. |
+| 2 | `0xb45f5c538dd6573cae750d29b22117e45e0f9a6d` | `` `$1,100,144` `` (`perp+spot`) / `` `+$768,319` `` | **AV:** `` `$1,103,227.57` `` (`Perps $1.103M`, `Spot $0.00`)<br>**Combined PnL:** `` `+$776,793.80` `` | **`63` Open Positions** (`23% Long / 77% Short`, `BTC 40x` short, `AVAX 10x` short), `82.6%` win rate across `23` lifetime trades (`18` recent main-perp closed trades in HyperPod). |
+| 3 | `0xfb941d2344b72ea9101400392b818173772d0ddf` (`RTB 2`) | `` `$11,319,476` `` / `` `+$15,194,669` `` | **AV:** `` `$9,011,345.46` `` (`Perps $9.011M`, `Spot $0.00`)<br>**Combined PnL:** `` `+$15,263,226.80` `` | **`4` Positions (`Swing`, `71.8%` win rate):** `NVDA`, `XYZ100`, `HYPE` (`+15K`), `BTC`; `$2.3M` AV delta reflects recent `SendToEvmWithData` / `BorrowLend` outflows seen on Explorer. |
+| 4 | `0x0fd6f65d35cf13ae51795036d0ae9af42f3cbcb4` | `` `$3,857,919` `` (`portfolioMargin`) / `` `+$1,707,910` `` | **AV:** `` `$4,459,620.02` `` (Perps `` `$941,908.55` ``, Spot `` `$3,517,711.47` ``)<br>**Combined PnL:** `` `+$1,688,024.86` `` | **`HYPE 2x` Short (`-37.5K HYPE`, `+$412.0K`)** offset by `` `$3.52M` `` Spot balance — independently confirms HyperPod `hedgeRatio = 1.0` & `spotHold` handling. |
+| 5 | `0xf5a523b171032c060d49c39fbf2e9bec473e1286` | `` `$1,890,358` `` (`disabled` perp) / `` `+$2,400,975` `` | **AV:** `` `$1,891,062.33` `` (**Perps** `` `$1,890,358.00` ``, Staked `` `$704.32` ``)<br>**Combined PnL:** `` `+$2,400,968.48` `` | **`Scalping` (`Median Trade Duration 0h 2m`)**, `525` trades, `71.0%` win rate — independently confirms HyperPod `medianHoldMinutes = 2.97m` (`hft` + `mm` exclusion). |
+
