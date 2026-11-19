@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 - **Proposal:** `0002`
 - **Date:** `2026-11-19`
-- **Status:** `Proposed — Awaiting User Approval`
+- **Status:** `Accepted (2026-11-19, Option A1)`
 - **Affects:** [`docs/implementation_plan.md`](../implementation_plan.md#L502) `§5.4` (`maxDrawdown`, L502) **【規範】**
 - **Empirical Evidence:** [`docs/research/portfolio.md`](../research/portfolio.md), [`docs/research/first-whitelist.md`](../research/first-whitelist.md), [`fixtures/api/portfolio_*.json`](../../fixtures/api/)
 
@@ -54,8 +54,8 @@ $$\mathrm{peak\_cap}_t = \max_{\mathrm{argmax} \le u \le t} \Big(\max(\mathrm{AV
 - **Upper bound guarantee:** Since `peak_cap_t >= eff_cap_t = max(AV_t, 0) + (peak_pnl - PnL_t) >= peak_pnl - PnL_t >= 0`, `DD_t` is mathematically bounded to **`[0.0, 1.0]`** for all non-negative equity paths.
 - **Full withdrawal immunity:** Withdrawing remaining capital (`AV_t -> 0`) after a `20%` loss cannot shrink `peak_cap_t`, so `DD_t` remains `0.20` rather than jumping to `1.00`.
 - **Two variants for an initial `(AV <= 0, PnL == 0)` prefix followed by day-1 losses (`AV_k > 0, PnL_k < 0`):**
-  - **Option A1 (`init_zero_baseline = True`, Recommended):** If an opening `AV <= 0, PnL == 0` sample precedes the first funded point `(AV_k > 0, PnL_k < 0)`, anchor the pre-funding origin at `peak_pnl = 0.0` and `peak_cap = AV_k + (-PnL_k)`, immediately capturing day-1 losses (e.g., `0x1f250df5 -> 0.9547`, `0xae6446c9 -> 0.9999`).
-  - **Option A2 (`init_zero_baseline = False`):** Ignore all points prior to the first `AV_k > 0` completely (`0x1f250df5 -> 0.9547`, `0xae6446c9 -> 0.0000` because `0xae6446c9`'s `$23.34` loss occurred entirely before its first `AV > 0` sample at `[3]`).
+  - **Option A1 (`init_zero_baseline = True`, Recommended):** If an opening `AV <= 0, PnL == 0` sample precedes the first funded point `(AV_k > 0, PnL_k < 0)`, anchor the pre-funding origin at `peak_pnl = 0.0` and `peak_cap = AV_k + (-PnL_k)`, immediately capturing day-1 losses (e.g., `0x1f250df5 -> 0.9567`, `0xae6446c9 -> 0.9999`, `0x87f9cd15 -> 0.0187`).
+  - **Option A2 (`init_zero_baseline = False`):** Ignore all points prior to the first `AV_k > 0` completely (`0x1f250df5 -> 0.9547` from `[1]` onward, `0x87f9cd15 -> 0.0000`, `0xae6446c9 -> 0.0000` because `0xae6446c9`'s `$23.34` loss occurred entirely before its first `AV > 0` sample).
 
 ### 2.2 Alternative Fix B: Chained Time-Weighted Return (Modified Dietz TWR)
 Given consecutive aligned points `(AV_{k-1}, PnL_{k-1})` and `(AV_k, PnL_k)`:
@@ -77,7 +77,7 @@ Because `perpAllTime` uses ~7-day (`167h`) to ~14-day (`335h`) buckets for histo
 
 | Synthetic Scenario | `orig` | `single_pt` | `path_peak_cap` (`A1`) | `twr_dietz` (`B`) | Notes |
 |---|---:|---:|---:|---:|---|
-| Opening `(0,0)` + day-1 `50%` loss (`AV: 0→1000→500, PnL: 0→-100→-600`) | **`0.0000`** *(miss)* | `0.5000` | **`0.5000`** | `0.5000` | Fixes `(0,0)` blind spot |
+| Opening `(0,0)` + day-1 loss (`AV: 0→1000→500, PnL: 0→-100→-600`, `$1,100` dep.) | **`0.0000`** *(miss)* | `0.5000` | **`0.5455`** | `0.5000` | Fixes `(0,0)` & `[0→1]` `-$100` loss |
 | Small `$100` → deposit `$10M` → `20%` loss → full withdrawal (`AV=0`) | `20,000.0` | **`1.0000`** *(false blowup)* | **`0.2000`** | `0.2000` | Fixes withdrawal-to-0 trap |
 | Small `$100` → deposit `$10M` + `20%` loss in same bucket → `AV=0` | `20,000.0` | **`1.0000`** *(false blowup)* | **`0.2000`** | `0.4000` *(2x bias)* | Avoids Dietz `w=0.5` bias |
 | Real `90%` blowup (`$1M→$100k`) → next-week `$10M` top-up | `0.9000` | `0.9000` | **`0.9000`** | `0.9000` | Preserves sequential blowup |
@@ -89,10 +89,10 @@ Because `perpAllTime` uses ~7-day (`167h`) to ~14-day (`335h`) buckets for histo
 | Fixture Address | `orig` | `single_pt` | `path_peak_cap` (`A1`) | `twr_dietz` (`B`) | Dietz `neg_denom` |
 |---|---:|---:|---:|---:|---:|
 | `0x023a3d05` (`Auros`) | `1.4151` | `0.6020` | **`0.5280`** | `0.6964` | `0` |
-| `0x1f250df5` | **`0.0000`** *( -$32.2M loss!)* | `1.0000` | **`0.9547`** | `1.0000` | **`50`** |
+| `0x1f250df5` | **`0.0000`** *( -$32.2M loss!)* | `1.0000` | **`0.9567`** | `1.0000` | **`50`** |
 | `0x6ecbb68c` | `0.3707` | `0.2643` | **`0.2643`** | `0.3073` | `0` |
 | `0x7fdafde5` (`BobbyBigSize`) | `3,060.7997` | `0.6051` | **`0.5011`** | `0.8626` | `0` |
-| `0x87f9cd15` | `0.0000` | `0.0000` | **`0.0000`** | `0.0000` | `0` *(monotonic -$26.79→-$26.69 after deposit)* |
+| `0x87f9cd15` | `0.0000` | `0.0000` | **`0.0187`** | `0.0000` | `0` *(opening -$26.79 / $1,431)* |
 | `0xb1ec7feb` | `3.2754` | `1.0000` | **`0.9772`** | `1.0000` | `0` |
 | `0xbf732ea0` | `2.8694` | `1.0000` | **`0.9898`** | `1.0000` | `6` |
 | `0xdf9ea6ec` | `2.9673` | `0.9773` | **`0.7993`** | `0.9974` | `1` |

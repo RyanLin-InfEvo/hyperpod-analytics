@@ -6,9 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # HyperPod Cross-Session Status (`docs/status.md`)
 
 - `currentPhase`: `Phase 3`
-- `currentTask`: `3.5 (Proposals 0002 & 0003 Submitted — Awaiting User Approval)`
-- `state`: `WAITING_PROPOSAL`
-- `lastUpdated`: `2026-11-19T15:05:00+08:00`
+- `currentTask`: `3.5 (Proposal 0002 Applied — Awaiting Phase 4 Go-Ahead & Proposal 0003 Confirmation)`
+- `state`: `WAITING_USER_REVIEW`
+- `lastUpdated`: `2026-11-19T15:31:00+08:00`
 
 ## Completed Commits & Artifacts
 - `2d8db9f` — Initial repo state on `main` (`Add gitignore and README`)
@@ -38,13 +38,12 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - `b5d0984` — Task 3.4: Hard gates, conditional whitelist state machine, criteria hash, and tracked coin scheduler (`pipeline/src/hyperpod/scoring/filters.py`, `pipeline/src/hyperpod/scoring/whitelist.py`, `pipeline/tests/test_filters_whitelist.py`)
 - `0bbf8cd` — Task 3.5 & Live Verification: Partitioned `StateStore`, `daily_runner`, `discover`/`score`/`backfill` CLI, `SpotBalance` live wire fix, and [`docs/research/first-whitelist.md`](research/first-whitelist.md)
 - Phase 3 Gate Report: [`docs/phase-reports/phase-3.md`](phase-reports/phase-3.md)
-- Proposal 0002 (`maxDrawdown` scale normalization): [`docs/proposals/0002-max-drawdown-scale-normalization.md`](proposals/0002-max-drawdown-scale-normalization.md)
-- Proposal 0003 (Multi-tier capital cohorts & archetypes): [`docs/proposals/0003-multi-tier-cohort-archetypes.md`](proposals/0003-multi-tier-cohort-archetypes.md)
+- Proposal 0002 (`maxDrawdown` scale normalization — **Accepted Option A1**): [`docs/proposals/0002-max-drawdown-scale-normalization.md`](proposals/0002-max-drawdown-scale-normalization.md)
+- Proposal 0003 (Multi-source address discovery & capital tiers — **Revised, Pending Confirmation**): [`docs/proposals/0003-multi-tier-cohort-archetypes.md`](proposals/0003-multi-tier-cohort-archetypes.md)
 
 ## Active Background Jobs
 - None
 
 ## Pending User Actions / Proposals (§11.2 / §11.3 / §13)
-1. **Approve Proposal 0002 (`§11.2`):** Choose `Option A1` (Recommended — running path `peak_cap_t` with `(0,0)` baseline), `Option A2`, `Option B` (Modified Dietz TWR), or keep current `§5.4` formula in [`docs/proposals/0002-max-drawdown-scale-normalization.md`](proposals/0002-max-drawdown-scale-normalization.md). *(Browser spot-check of the 5 addresses in [`docs/research/first-whitelist.md`](research/first-whitelist.md) Section 6 completed.)*
-2. **Approve Proposal 0003 (`§11.2`):** Confirm recommended two-stage rollout (Stage A non-breaking `tier`/`archetypes` hooks in Phases 5–7; Stage B full `$50K–$1M` + contrarian archetypes in Phase 9.1) or defer to Phase 9.1, and authorize starting Phase 4.
-3. **GitHub Actions & Remote Push (`§13`):** Confirm GitHub Repo `Settings → Actions → General → Workflow permissions` is set to **Read and write permissions**, push local `main` commits to `origin` when Phase 4 enables online Workflows, and verify `ci.yml` passes on GitHub Actions.
+1. **Confirm Proposal 0003 & Phase 4 Transition (`§11.2` / `§11.3`):** Confirm whether to adopt the revised Two-Stage Rollout in [`docs/proposals/0003-multi-tier-cohort-archetypes.md`](proposals/0003-multi-tier-cohort-archetypes.md) (`Stage A` optional `tier`/`sources` fields + UI selector in Phases 5–7; `Stage B` `config/sources/*.txt` + `$50K–$1M` tiers + optional `COINGLASS_API_KEY` adapter in Phase 9.1) and authorize starting **Phase 4 (`4.1`–`4.6`)**. *(Proposal 0002 Option A1 has been approved, applied to `§5.4` & `metrics.py`, and verified.)*
+2. **GitHub Actions & Remote Push (`§13`):** Confirm GitHub Repo `Settings → Actions → General → Workflow permissions` is set to **Read and write permissions**, push local `main` commits to `origin` when Phase 4 enables online Workflows, and verify `ci.yml` passes on GitHub Actions.

@@ -189,27 +189,78 @@ def test_max_drawdown_cases() -> None:
     pf_climb = _portfolio_window([(1, 100_000, 0), (2, 120_000, 20_000), (3, 150_000, 50_000)])
     assert compute_max_drawdown(pf_climb) == 0.0
 
-    # 3. Withdrawal invariance: AV drops from 10M to 2M on withdrawal while PnL rises,
-    # then PnL drops 2M from peak 5M -> 3M relative to AV at peak (10M) => DD = 2M / 10M = 0.20
+    # 3. Withdrawal invariance: AV drops from 10M to 2.5M on withdrawal while PnL rises,
+    # then PnL drops 500k from peak 5.5M -> 5.0M relative to AV at peak (2.5M) => DD = 0.20
     pf_wd = _portfolio_window(
         [
             (1, 10_000_000, 5_000_000),  # peak PnL = 5M, AV_argmax = 10M
-            (2, 2_500_000, 5_500_000),  # withdrew 8M, PnL rose to 5.5M (new peak, AV_argmax=2.5M)
+            (2, 2_500_000, 5_500_000),  # withdrew 8M, PnL rose to 5.5M (new peak, peak_cap=2.5M)
             (3, 2_000_000, 5_000_000),  # DD = (5.5M - 5.0M) / 2.5M = 0.20
         ]
     )
     assert compute_max_drawdown(pf_wd) == pytest.approx(0.20)
 
-    # 4. Initial zero-AV peak skipped until later positive-AV point beats or sets valid peak
-    pf_zero_start = _portfolio_window(
+    # 4. Opening (AV=0, PnL=0) + day-1 loss -> captures true loss from initial principal
+    pf_open_loss = _portfolio_window([(1, 0.0, 0.0), (2, 1_000.0, -100.0), (3, 500.0, -600.0)])
+    assert compute_max_drawdown(pf_open_loss) == pytest.approx(600.0 / 1_100.0)
+    pf_open_50 = _portfolio_window([(1, 0.0, 0.0), (2, 900.0, -100.0), (3, 500.0, -500.0)])
+    assert compute_max_drawdown(pf_open_50) == pytest.approx(0.50)
+
+    # 5. Small test -> $10M deposit -> 20% loss -> full withdrawal (AV=0) -> 0.20
+    pf_scale_withdraw = _portfolio_window(
         [
             (1, 0.0, 0.0),
-            (2, 1_000_000, -100_000),  # peak_av still 0.0 -> skipped
-            (3, 2_000_000, 500_000),  # new peak with AV = 2M
-            (4, 1_500_000, 0.0),  # DD = 500k / 2M = 0.25
+            (2, 100.0, 10.0),
+            (3, 10_000_100.0, 10.0),
+            (4, 8_000_100.0, -1_999_990.0),
+            (5, 0.0, -1_999_990.0),
         ]
     )
-    assert compute_max_drawdown(pf_zero_start) == pytest.approx(0.25)
+    assert compute_max_drawdown(pf_scale_withdraw) == pytest.approx(2_000_000.0 / 10_000_100.0)
+
+    # 6. Real 90% blowup ($1M -> $100k) -> next-week $10M top-up -> retains 0.90
+    pf_blowup = _portfolio_window(
+        [
+            (1, 0.0, 0.0),
+            (2, 1_000_000.0, 50_000.0),
+            (3, 100_000.0, -850_000.0),
+            (4, 10_100_000.0, -850_000.0),
+        ]
+    )
+    assert compute_max_drawdown(pf_blowup) == pytest.approx(0.90)
+
+    # 7. Negative intermediate AV clamped strictly within [0.0, 1.0]
+    pf_neg_av = _portfolio_window(
+        [
+            (1, 100.0, 100.0),
+            (2, -50.0, -50.0),  # dd_usd=150, max(av,0)+dd_usd=150 -> DD=1.0
+        ]
+    )
+    res_neg = compute_max_drawdown(pf_neg_av)
+    assert 0.0 <= res_neg <= 1.0
+    assert res_neg == pytest.approx(1.0)
+
+    # 8. Real API fixtures: 0x1f250df5 (day-1 loss) & 0xfc27136e ($1.42 dust scale-up)
+    pf_1f2 = PortfolioResponse.model_validate(
+        json.loads((FIXTURES_API / "portfolio_0x1f250df5.json").read_text(encoding="utf-8"))
+    )
+    assert compute_max_drawdown(pf_1f2) == pytest.approx(0.9567, abs=1e-3)
+
+    pf_fc2 = PortfolioResponse.model_validate(
+        json.loads((FIXTURES_API / "portfolio_0xfc27136e.json").read_text(encoding="utf-8"))
+    )
+    assert compute_max_drawdown(pf_fc2) == pytest.approx(0.3844, abs=1e-3)
+
+    # 9. Initial day-1 loss from (0,0) followed by new peak and 25% drawdown
+    pf_recover = _portfolio_window(
+        [
+            (1, 0.0, 0.0),
+            (2, 1_000_000.0, -100_000.0),  # initial loss DD = 100k / 1.1M = 0.0909
+            (3, 2_000_000.0, 500_000.0),  # new peak with AV = 2M
+            (4, 1_500_000.0, 0.0),  # DD = 500k / 2M = 0.25
+        ]
+    )
+    assert compute_max_drawdown(pf_recover) == pytest.approx(0.25)
 
 
 def test_history_days_and_median_hold_minutes_cases() -> None:

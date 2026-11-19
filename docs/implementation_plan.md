@@ -499,7 +499,7 @@ flowchart TD
 | `profitFactor` | 令 `W = Σ(netPnl > 0)`、`L = |Σ(netPnl < 0)|`；`L == 0 且 W > 0` 記為 `null`（無限大，通過 PF 門檻但標記）；`W == 0` 記為 `0.0`；否則 `W / L` |
 | `profitFactorRobust` | 若無任何獲利交易，記為 `0.0`；否則移除**最大一筆獲利交易**後依 `profitFactor` 規則重算（若移除後無剩餘交易，記為 `0.0`） |
 | `topWinShare` | `W == 0` 時為 `0.0`；否則 `max(netPnl > 0) / W` |
-| `maxDrawdown` | 取 `perpAllTime.pnlHistory` 與 `accountValueHistory` 依時間戳對齊；`DD_t = (max_{s≤t} PnL_s − PnL_t) / AV_{argmax}`（分母 `≤ 0` 略過該點）；無有效點時為 `0.0`，結果下限 `0.0` |
+| `maxDrawdown` | 取 `perpAllTime.pnlHistory` 與 `accountValueHistory` 依時間戳對齊：僅將 `AV > 0` 之點納為有效新高（若開頭出現 `AV ≤ 0 且 PnL == 0`，其後首個 `AV > 0 且 PnL < 0` 區間以 `peak_pnl = 0`、`peak_cap = AV + (−PnL)` 起算）。自最近有效新高 `argmax` 起沿途追蹤最大有效資金水位 `peak_cap_t = max_{argmax≤u≤t}(max(AV_u, 0) + (peak_pnl − PnL_u))`；`DD_t = (peak_pnl − PnL_t) / peak_cap_t`；無有效點時為 `0.0`，結果夾限於 `[0.0, 1.0]` |
 | `historyDays` | 無 fill 時為 `0.0`；否則 `(now − 最早可用 fill 時間) / 1 天` |
 | `fillsPerDay` | 最近 30 個 UTC 日中，以 `aggregateByTime: true` 取得之主 perp dex fill 總數 / 有成交的 UTC 天數（天數為 0 時為 `0.0`；門檻預設值由 Phase 0.4 實測原始 vs 聚合比例後寫入 `pipeline.yaml`） |
 | `medianHoldMinutes` | `nTrades == 0` 時為 `0.0`；否則已完成交易持有分鐘數 `(closeT − openT) / 60000` 之中位數 |

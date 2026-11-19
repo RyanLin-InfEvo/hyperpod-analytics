@@ -77,17 +77,25 @@ def compute_top_win_share(closed_trades: Sequence[ClosedTrade]) -> float:
 
 
 def compute_max_drawdown(portfolio: PortfolioResponse | PortfolioWindowMetrics) -> float:
-    """Compute peak-to-trough ``perpAllTime`` PnL drawdown relative to peak account value (§5.4).
+    """Compute scale-normalized ``perpAllTime`` PnL drawdown bounded in ``[0.0, 1.0]`` (§5.4).
 
-    Points whose running peak ``accountValue <= 0`` are skipped; returns ``0.0`` when no valid
-    points exist and clamps the final result at ``>= 0.0``.
+    Implements Proposal 0002 (Option A1):
+    - Only ``AV > 0`` samples can establish a new PnL high-water mark (``peak_pnl``).
+    - If an opening ``(AV <= 0, PnL == 0)`` origin precedes the first funded point and that
+      first funded point already has ``PnL < 0``, anchor ``peak_pnl = 0.0`` with
+      ``peak_cap = AV + (-PnL)`` so opening losses are never skipped as ``0.0``.
+    - From each valid high-water mark ``argmax``, track the running maximum effective capital
+      ``peak_cap_t = max_{argmax <= u <= t}(max(AV_u, 0) + (peak_pnl - PnL_u))`` and compute
+      ``DD_t = (peak_pnl - PnL_t) / peak_cap_t``, preventing scale-up amplification and
+      withdrawal-to-zero false blowups.
     """
     window = (
         portfolio.window("perpAllTime") if isinstance(portfolio, PortfolioResponse) else portfolio
     )
     peak_pnl: float | None = None
-    peak_av = 0.0
+    peak_cap = 0.0
     max_dd = 0.0
+    saw_zero_origin = False
 
     for (_, av_str), (_, pnl_str) in zip(
         window.accountValueHistory,
@@ -96,16 +104,35 @@ def compute_max_drawdown(portfolio: PortfolioResponse | PortfolioWindowMetrics) 
     ):
         av = float(av_str)
         pnl = float(pnl_str)
-        if peak_pnl is None or pnl > peak_pnl or (pnl == peak_pnl and peak_av <= 0.0 < av):
-            peak_pnl = pnl
-            peak_av = av
-        if peak_av <= 0.0:
+        if peak_pnl is None:
+            if av <= 0.0:
+                if pnl == 0.0:
+                    saw_zero_origin = True
+                continue
+            if saw_zero_origin and pnl < 0.0:
+                peak_pnl = 0.0
+                dd_usd = -pnl
+                peak_cap = av + dd_usd
+                if peak_cap > 0.0:
+                    max_dd = max(max_dd, min(1.0, dd_usd / peak_cap))
+            else:
+                peak_pnl = pnl
+                peak_cap = av
             continue
-        dd_t = (peak_pnl - pnl) / peak_av
-        if dd_t > max_dd:
-            max_dd = dd_t
 
-    return max(0.0, max_dd)
+        if av > 0.0 and pnl > peak_pnl:
+            peak_pnl = pnl
+            peak_cap = av
+            continue
+
+        dd_usd = max(0.0, peak_pnl - pnl)
+        eff_cap = max(av, 0.0) + dd_usd
+        if eff_cap > peak_cap:
+            peak_cap = eff_cap
+        if peak_cap > 0.0:
+            max_dd = max(max_dd, min(1.0, dd_usd / peak_cap))
+
+    return min(1.0, max(0.0, max_dd))
 
 
 def compute_history_days(fills_history_start: int | None, now_ms: int) -> float:
