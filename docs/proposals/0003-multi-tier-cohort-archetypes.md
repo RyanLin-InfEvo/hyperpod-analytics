@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 - **Proposal:** `0003` *(Revised per User Feedback 2026-11-19)*
 - **Date:** `2026-11-19`
-- **Status:** `Proposed — Awaiting User Timing & Scope Approval`
+- **Status:** `Accepted (2026-11-19, Two-Stage Rollout)`
 - **Affects:** [`docs/implementation_plan.md`](../implementation_plan.md) `§3.1`, `§5.1`, `§6`, `§7.1`, `§8.2`, `§9`
 
 ---

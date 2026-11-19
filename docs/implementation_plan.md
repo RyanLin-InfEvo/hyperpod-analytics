@@ -275,6 +275,8 @@ data/
 - `coverageStart`：此地址倉位可以確定的最早時間（= 已取得的最早一筆 fill 時間）。即時追蹤開始後的資料不受此限。
 - `membership`：入選區間列表 `[enterTs, exitTs|null, criteriaVersion]`，供 point-in-time cohort 使用。**`criteriaVersion = 0` 保留給「回溯入選」**：bootstrap 時入選的地址，其回溯區間 `[max(coverageStart, reconstructStart), launchedAt)` 記為版本 0，表示「用上線時的條件事後選出」（含前瞻偏差，UI 須標示，§7.1）。
 - `addresses` 包含**歷史上曾入選**的所有地址（已退出者的最後一段 membership 有 exitTs）。
+- `tier`（可選，Proposal 0003 Stage A，Phase 5 加入，不升 `schemaVersion`）：依帳戶淨值劃分之資金量體分級 `"leviathan"`（`$50M+`）／`"super_whale"`（`$1M–$50M`）／`"whale"`（`$500K–$1M`）／`"small_whale"`（`$100K–$500K`）／`"sniper"`（`$50K–$100K`）；v1 先涵蓋前兩級。
+- `sources`（可選，Proposal 0003 Stage A，Phase 5 加入，不升 `schemaVersion`）：地址來源標籤陣列（v1 為 `["leaderboard"]`、`["seed"]`、`["subAccount"]`；Phase 9.1 擴充 `["source:<name>"]`、`["coinglass_api"]`）。
 
 ### 3.3 快照：關鍵影格 + 變更紀錄（keyframe + change-log）
 **設計理由**：10 分鐘內絕大多數倉位不會變。若每筆快照都完整存一次，實測（200 地址 × 3 倉位、每天 144 筆）**原始 JSON 2.1 MB/天**；gzip 後只有 38 KB，但瀏覽器解壓後仍要**解析 2.1 MB**、建立數十萬個物件，這才是效能瓶頸。改成「只記錄變化」後原始大小降到 **85 KB/天（約 25 倍）**。
@@ -688,7 +690,8 @@ Flutter **鎖定版本**（於 Phase 1.5 將實裝穩定版寫入 `.fvmrc` 與 `
 └───────────────────────────────────────────────────────────────────┘
 ```
 - 寬度 `< 900 px`：所有區塊縱向堆疊，FRVP 疊在主圖右側半透明。
-- 所有控制項狀態同步到 URL（`/#/?coin=BTC&mode=pv&dust=5&range=7d&iv=1h&cohort=pit`），可分享。
+- 所有控制項狀態同步到 URL（`/#/?coin=BTC&mode=pv&dust=5&range=7d&iv=1h&cohort=pit&tiers=all&sources=all`），可分享。
+- **地址來源與資金量體切換器（Proposal 0003 Stage A）**：支援依資金層級（v1 先分 `巨無霸 $50M+`／`超級鯨魚 $1M–$50M`，預留 `$500K–$1M`／`$100K–$500K`／`$50K–$100K`）與地址來源（`leaderboard` / `seed` / `subAccount`，Phase 9.1 擴充外部來源與 CoinGlass API）即時過濾所有圖表與地址表格，透過純 Dart `domain/` 層處理。
 - 資料新鮮度 badge：`< 20 分` 綠、`20–60 分` 黃、`> 60 分` 紅並顯示警示。
 - **篩選條件面板**（唯讀）：header 顯示「Criteria v3 · 184 / 2,391 passed」徽章，點擊開啟側欄：
   - 依 Stage 1 / Hard gates / Membership / Scope 分組列出每條條件（label、運算子、數值與單位、ⓘ description）。
@@ -812,10 +815,10 @@ flowchart LR
 ### Phase 5 — 前端基礎與計算引擎
 | 任務 | 細節 |
 |---|---|
-| 5.1 `data/models/` | 對應 schemas 的 Dart 模型 + 解析 + `schemaVersion` 檢查 |
+| 5.1 `data/models/` + Schema 擴充（Proposal 0003 Stage A） | 對應 schemas 的 Dart 模型 + 解析 + `schemaVersion` 檢查；於 `whitelist.schema.json`、Python/Dart 模型與 `fixtures/site-data/` 同步新增可選欄位 `tier` 與 `sources`（不升 `schemaVersion`），先為 `$1M+` 池填入 `leviathan`/`super_whale` 與來源標籤 |
 | 5.2 `SiteDataSource` + `CandleSource`（§8.5） | 支援 `.json` / `.json.gz`（Web 原生解壓 + VM test 實作）、cache-busting `?t=` / `?v=`、typed arrays 轉換、每檔讓出 frame、K 線 `5m` 聚合與即時 API 回退 |
-| 5.3 `domain/` 全部模組依 §7 實作 | 以 `pipeline/tests/reference/frontend_math.py` 產生 golden JSON，Dart 測試比對**相對誤差 ≤ `1e-9`（接近 0 時絕對誤差 ≤ `1e-9`）**；實作 `app/benchmark/domain_benchmark.dart` |
-| 5.4 Riverpod 狀態與 App shell | `controlsProvider`（URL 同步）、`datasetProvider`、圖表 result provider、控制列、新鮮度 badge、錯誤/載入/空狀態、免責頁尾 |
+| 5.3 `domain/` 全部模組依 §7 實作 | `entities.dart` 內建 `CohortFilter(tiers, sources)` 分層過濾；以 `pipeline/tests/reference/frontend_math.py` 產生 golden JSON，Dart 測試比對**相對誤差 ≤ `1e-9`（接近 0 時絕對誤差 ≤ `1e-9`）**；實作 `app/benchmark/domain_benchmark.dart` |
+| 5.4 Riverpod 狀態與 App shell | `controlsProvider`（URL 同步，含 `tiers`/`sources` 篩選）、`datasetProvider`、圖表 result provider、控制列、新鮮度 badge、錯誤/載入/空狀態、免責頁尾 |
 
 **驗收**：CI 全綠；`domain_benchmark.dart` 於 CI runner < 100 ms；URL 重新整理後控制狀態一致；結案報告經使用者確認。
 
@@ -837,8 +840,8 @@ flowchart LR
 | 7.2 #3 名目多空 | 堆疊面積 + 多方占比 |
 | 7.3 #5 曝險變化卡片 | 1h/4h/24h 三組 bar + 模式對應單位（`$` / `% AV` / `eq. whales`）+ 30% 交叉驗證提示 |
 | 7.4 #1 交易頻率直方圖 | log 分箱、白名單 vs 候選、門檻線、可切換指標 |
-| 7.5 地址表格（§8.4） | 實體彙總、子帳戶展開、成交列表、explorer 外連 |
-| 7.6 篩選條件面板（§8.2） | 徽章、分組列表、淘汰人數、變更紀錄、主圖版本色帶與 `reconstructed` / `criteriaVersion=0` 警示 |
+| 7.5 地址表格（§8.4） | 實體彙總、子帳戶展開、資金分級（`tier`）與來源（`sources`）標籤顯示、成交列表、explorer 外連 |
+| 7.6 篩選條件面板（§8.2）＋來源／分級切換器 | 徽章、分組列表、淘汰人數、變更紀錄、**地址來源與資金量體切換器（Proposal 0003 Stage A：`巨無霸 $50M+` / `超級鯨魚 $1M–$50M` 及 `sources` 過濾，預留 Phase 9.1 介面）**、主圖版本色帶與 `reconstructed` / `criteriaVersion=0` 警示 |
 | 7.7 圖表說明 ⓘ | 每張圖右上角 ⓘ 顯示指標定義（內容同步 `docs/metrics.md`） |
 
 **驗收**：CI 全綠；每張圖有 widget test；權重模式切換時自動斷言 #3/#1 不變、#2/#4/#5/#6/#7 依表 7.3 變化；結案報告經使用者確認。
@@ -854,7 +857,14 @@ flowchart LR
 
 **驗收**：CI 全綠；Lighthouse 與 `hyperpod health --days 7` 通過；加上 §13 使用者線上實機 3 地址人工核對通過後，正式發布 v1.0！
 
-### Phase 9 — 未來擴充（不在 v1 範圍）
+### Phase 9 — 未來擴充（v1.1+，不在 v1 範圍）
+
+#### Phase 9.1 — 多地址來源與 `$50K–$1M` 資金層級擴充（v1.1，Proposal 0003 Stage B）
+- **外部名單匯入（`config/sources/*.txt`）**：將單一 `seed_addresses.txt` 擴充為依檔名區分的多組來源清單（如 `config/sources/coinglass_leviathan.txt`、`coinglass_super_whale.txt`、`custom_watchlist.txt` 等），於 `whitelist.json` 保留真實來源標籤 `["source:<name>"]`。
+- **開放 `$50K–$1M` 資金層級**：納入 `whale`（`$500K–$1M`）、`small_whale`（`$100K–$500K`）與 `sniper`（`$50K–$100K`）三層級，於 `config/pipeline.yaml` 設定各層級配額上限或雙頻率排程（確保 10 分鐘 `fast` 維持 `<= 550` 戶、符合 `800 weight/min` 限流）。
+- **選配 CoinGlass API V4 轉接器**：當使用者透過 GitHub Actions Secrets 或本機環境變數提供付費 `COINGLASS_API_KEY`（嚴禁寫入 repo）時，於 `discover` 呼叫 `/api/hyperliquid/whale-position` 拉取清單並標註 `["coinglass_api"]`；未設定則自動略過。
+
+#### Phase 9.2+ — 其他未來擴充
 S3 歷史歸檔回溯超過 10k 筆成交；常駐後端 + WebSocket 即時推播；HIP-3 / 現貨支援；警報（Telegram/Discord）；zh-TW 介面；地址標籤（社群貢獻）；冷資料自動搬移至 GitHub Releases / Cloudflare R2。
 
 ---
