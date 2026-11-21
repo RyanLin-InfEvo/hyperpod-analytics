@@ -1,0 +1,228 @@
+# SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Pipeline Daily (Discover, Score, Candles & Publish)
+
+on:
+  schedule:
+    - cron: "17 0 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: write
+
+jobs:
+  score:
+    name: Daily Discovery, Stage 2 Scoring & Candles
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    concurrency:
+      group: hyperpod-daily-score
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Clone state and gh-pages data
+        run: |
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/state | grep -q state; then
+            git clone --depth=1 --single-branch --branch state "https://github.com/${{ github.repository }}.git" state
+          else
+            mkdir -p state/daily
+          fi
+          mkdir -p data
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/gh-pages | grep -q gh-pages; then
+            git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" gh-pages-clone
+            if [ -d gh-pages-clone/data ]; then
+              cp -a gh-pages-clone/data/. data/
+            fi
+          fi
+
+      - name: Run discover, score, candles & fill fetch
+        working-directory: pipeline
+        run: |
+          uv run hyperpod discover --state-dir ../state
+          uv run hyperpod score --ci-budget --state-dir ../state --data-dir ../data
+          uv run hyperpod candles --ci-budget --state-dir ../state --data-dir ../data
+          uv run hyperpod publish --ci-budget --fetch-fills --state-dir ../state --data-dir ../data
+
+      - name: Stage daily score artifact
+        run: |
+          mkdir -p _daily_artifact/state _daily_artifact/data
+          if [ -d state/daily ]; then
+            cp -a state/daily _daily_artifact/state/daily
+          fi
+          if [ -d data/candles ]; then
+            cp -a data/candles _daily_artifact/data/candles
+          fi
+          if [ -d data/fills ]; then
+            cp -a data/fills _daily_artifact/data/fills
+          fi
+
+      - name: Upload daily score artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-score-output
+          path: _daily_artifact
+          retention-days: 2
+
+  publish:
+    name: Daily Publish, Compaction & Pages Deploy
+    needs: score
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: hyperpod-writer
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Download daily score artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: daily-score-output
+          path: _daily_artifact
+
+      - name: Freshly clone state and gh-pages data
+        run: |
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/state | grep -q state; then
+            git clone --depth=1 --single-branch --branch state "https://github.com/${{ github.repository }}.git" state
+          else
+            mkdir -p state
+          fi
+          mkdir -p data
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/gh-pages | grep -q gh-pages; then
+            git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" gh-pages-clone
+            if [ -d gh-pages-clone/data ]; then
+              cp -a gh-pages-clone/data/. data/
+            fi
+          fi
+
+      - name: Run daily publish, compaction & single-commit pushes
+        working-directory: pipeline
+        run: |
+          uv run hyperpod publish --ci-budget \
+            --no-fetch-fills \
+            --state-dir ../state \
+            --data-dir ../data \
+            --artifact-dir ../_daily_artifact \
+            --remote-url "https://github.com/${{ github.repository }}.git" \
+            --push-state \
+            --push-gh-pages \
+            --owner daily
+
+      - name: Prepare Pages artifact from updated gh-pages
+        run: |
+          git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" _pages_deploy
+          rm -rf _pages_deploy/.git
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _pages_deploy
+
+      - name: Deploy GitHub Pages
+        uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Live Smoke Verification & Schedule Keepalive
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Clone gh-pages data and verify live positions
+        working-directory: pipeline
+        run: |
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/gh-pages | grep -q gh-pages; then
+            git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" ../gh-pages-clone
+          else
+            mkdir -p ../gh-pages-clone/data
+          fi
+          if [ -f ../gh-pages-clone/data/snapshots/latest.json ]; then
+            uv run hyperpod verify-live --sample 3 --data-dir ../gh-pages-clone/data
+          else
+            echo "Skipping verify-live: snapshots/latest.json not yet published."
+          fi
+
+      - name: Keep scheduled workflows alive (45-day check, §6.2)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from datetime import UTC, datetime, timedelta
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          raw = subprocess.check_output(
+              ["gh", "api", f"/repos/{repo}/actions/workflows"],
+              text=True,
+          )
+          data = json.loads(raw)
+          cutoff = datetime.now(UTC) - timedelta(days=45)
+          for wf in data.get("workflows", []):
+              path = wf.get("path", "")
+              if path.endswith("pipeline-fast.yml") or path.endswith("pipeline-daily.yml"):
+                  updated = datetime.fromisoformat(wf["updated_at"].replace("Z", "+00:00"))
+                  if updated <= cutoff or wf.get("state") != "active":
+                      subprocess.run(
+                          ["gh", "api", "-X", "PUT", f"/repos/{repo}/actions/workflows/{wf['id']}/enable"],
+                          check=True,
+                      )
+                      print(f"Re-enabled keepalive for {path} (id={wf['id']})")
+          PY

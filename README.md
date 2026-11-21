@@ -136,19 +136,56 @@ flutter build web --release --base-href /hyperpod-analytics/
 
 ---
 
-## Bootstrap & Deployment Guide (Overview)
+## Bootstrap & Deployment Guide
 
-Detailed workflow execution is implemented across Phases 2–4 (`docs/implementation_plan.md` `§6.2`, `§6.5`, `§13`):
+Detailed workflow execution is implemented across Phases 2–4 ([`docs/implementation_plan.md`](docs/implementation_plan.md) `§6.2`, `§6.5`, `§13`):
 
-1. **GitHub Repository Settings:**
-   - Enable `Read and write permissions` under `Settings → Actions → General → Workflow permissions`.
-   - Set `Settings → Pages → Build and deployment → Source` to **GitHub Actions**.
-2. **One-Time Local Bootstrap (Phase 4):**
-   - Run `hyperpod bootstrap` locally (supports `--budget-minutes` checkpointing) to backfill historical fills (`<= 10,000` per candidate), tiered candles, and reconstructed pre-launch snapshots, then publish initial `state` and `gh-pages` branches before enabling scheduled GitHub Actions workflows.
-3. **Ongoing Automation:**
-   - `pipeline-fast.yml` (`*/10 * * * *`): collects 10-minute snapshots and incremental whitelist fills.
-   - `pipeline-daily.yml` (`17 0 * * *`): runs lock-free `discover` / `score` / `candles` followed by a short-locked `publish` job (and monthly `.json.gz` compaction).
-   - `deploy-frontend.yml`: builds and publishes the Flutter Web app to `gh-pages` while preserving `data/`.
+### 1. GitHub Repository Settings (One-Time Manual Setup)
+- Enable **Read and write permissions** under `Settings → Actions → General → Workflow permissions`.
+- Set `Settings → Pages → Build and deployment → Source` to **GitHub Actions**.
+
+### 2. One-Time Local Bootstrap (`hyperpod bootstrap`)
+Run `hyperpod bootstrap` locally (`1,000 weight/min` rate-limit budget; `~28–35h` for full `~1.7M` weight candidate backfill, resumable every 20 addresses via `state/daily/backfill_cursor.json`):
+
+```bash
+cd pipeline
+
+# Run in bounded time slices (safe to Ctrl-C or resume across sessions)
+uv run hyperpod bootstrap --budget-minutes 120 --state-dir ../state --data-dir ../data
+
+# Resume until backfill completes, then score, archive candles, reconstruct pre-launch snapshots,
+# capture the initial live snapshot (launchedAt), validate all schemas, and push orphan branches:
+uv run hyperpod bootstrap \
+  --state-dir ../state \
+  --data-dir ../data \
+  --push-remote "https://github.com/RyanLin-InfEvo/hyperpod-analytics.git"
+```
+
+If you already completed `hyperpod backfill` separately, skip repeating backfill via `--skip-backfill`:
+
+```bash
+uv run hyperpod bootstrap --skip-backfill --state-dir ../state --data-dir ../data \
+  --push-remote "https://github.com/RyanLin-InfEvo/hyperpod-analytics.git"
+```
+
+Both `state` and `gh-pages` are maintained as single-commit orphan branches (`git rev-list --count origin/gh-pages == 1`) pushed with `--force-with-lease` retries and pre-push secret + schema validation.
+
+### 3. Ongoing GitHub Actions Automation & Health Checks
+- [`pipeline-fast.yml`](.github/workflows/pipeline-fast.yml) (`*/10 * * * *`): Holds `hyperpod-writer` lock (`~1–2m`), runs `hyperpod snapshot --ci-budget`, pushes scoped `state/fast/` and `gh-pages/data/` updates, and deploys Pages.
+- [`pipeline-daily.yml`](.github/workflows/pipeline-daily.yml) (`17 0 * * *`):
+  - `score` (lock-free `hyperpod-daily-score` group, up to `300m`): runs `discover`, `score --ci-budget`, and `candles`.
+  - `publish` (`hyperpod-writer` lock, `15m`): merges daily artifacts, fetches missing/intra-10m fills, compacts `>7d` snapshots & fills into `.json.gz` monthly files after replay verification, rebuilds `manifest.json`, and deploys Pages.
+  - `smoke` (lock-free): runs `hyperpod verify-live --sample 3` and the 45-day schedule keepalive check.
+- [`pipeline-backfill.yml`](.github/workflows/pipeline-backfill.yml) (`workflow_dispatch`): Cloud checkpoint backfill fallback (`backfill` lock-free → `publish-state` with `hyperpod-writer`).
+- [`deploy-frontend.yml`](.github/workflows/deploy-frontend.yml) (`push` to `app/**` or `.fvmrc`): Builds Flutter Web release lock-free, then publishes root web assets to `gh-pages` while preserving `data/` and `.nojekyll`.
+
+Operational checks:
+```bash
+cd pipeline
+uv run hyperpod verify-live --sample 3 --data-dir ../data
+uv run hyperpod health --hours 24 --state-dir ../state --data-dir ../data
+uv run hyperpod health --days 7 --state-dir ../state --data-dir ../data
+```
 
 ---
 

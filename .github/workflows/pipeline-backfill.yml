@@ -1,0 +1,128 @@
+# SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Pipeline Backfill (Manual Resume)
+
+on:
+  workflow_dispatch:
+    inputs:
+      budget_minutes:
+        description: "Maximum backfill runtime budget in minutes before clean checkpoint"
+        required: true
+        default: "300"
+        type: string
+      limit:
+        description: "Optional max candidate count for this run"
+        required: false
+        default: ""
+        type: string
+      refresh_discover:
+        description: "Re-run leaderboard discovery on a fresh backfill start"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    name: Run Resumable Backfill
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Clone existing state if present
+        run: |
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/state | grep -q state; then
+            git clone --depth=1 --single-branch --branch state "https://github.com/${{ github.repository }}.git" state
+          else
+            mkdir -p state/daily
+          fi
+
+      - name: Run backfill with checkpointing
+        working-directory: pipeline
+        run: |
+          args=(--ci-budget --budget-minutes "${{ inputs.budget_minutes }}" --state-dir ../state)
+          if [ -n "${{ inputs.limit }}" ]; then
+            args+=(--limit "${{ inputs.limit }}")
+          fi
+          if [ "${{ inputs.refresh_discover }}" = "true" ]; then
+            args+=(--refresh-discover)
+          fi
+          uv run hyperpod backfill "${args[@]}"
+
+      - name: Stage daily state artifact
+        run: |
+          mkdir -p _backfill_state
+          if [ -d state/daily ]; then
+            cp -a state/daily _backfill_state/daily
+          fi
+
+      - name: Upload backfill state artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backfill-daily-state
+          path: _backfill_state
+          retention-days: 2
+
+  publish-state:
+    name: Publish Backfill State (Writer Lock)
+    needs: backfill
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: hyperpod-writer
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Download backfill state artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backfill-daily-state
+          path: _backfill_state
+
+      - name: Push daily partition to state branch
+        working-directory: pipeline
+        run: |
+          uv run hyperpod publish --push-only --branch state --owner daily \
+            --source-dir ../_backfill_state \
+            --remote-url "https://github.com/${{ github.repository }}.git" \
+            --commit-message "chore(backfill): update daily checkpoint state"

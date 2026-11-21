@@ -1,0 +1,88 @@
+# SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Pipeline Fast (10m Snapshots)
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: hyperpod-writer
+  cancel-in-progress: false
+
+jobs:
+  fast:
+    name: Fast Snapshot & Incremental Fills
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Clone state and gh-pages data
+        run: |
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/state | grep -q state; then
+            git clone --depth=1 --single-branch --branch state "https://github.com/${{ github.repository }}.git" state
+          else
+            mkdir -p state/fast state/daily
+          fi
+          mkdir -p data
+          if git ls-remote --heads "https://github.com/${{ github.repository }}.git" refs/heads/gh-pages | grep -q gh-pages; then
+            git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" gh-pages-clone
+            if [ -d gh-pages-clone/data ]; then
+              cp -a gh-pages-clone/data/. data/
+            fi
+          fi
+
+      - name: Run 10-minute snapshot & incremental fills
+        working-directory: pipeline
+        run: uv run hyperpod snapshot --ci-budget --state-dir ../state --data-dir ../data
+
+      - name: Publish scoped state (fast) and gh-pages data (fast)
+        working-directory: pipeline
+        run: |
+          uv run hyperpod publish --push-only --branch state --owner fast \
+            --source-dir ../state \
+            --remote-url "https://github.com/${{ github.repository }}.git" \
+            --commit-message "chore(fast): 10m snapshot state"
+          uv run hyperpod publish --push-only --branch gh-pages --owner fast \
+            --source-dir ../data \
+            --remote-url "https://github.com/${{ github.repository }}.git" \
+            --commit-message "chore(fast): 10m snapshot data"
+
+      - name: Prepare Pages artifact from updated gh-pages
+        run: |
+          git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" _pages_deploy
+          rm -rf _pages_deploy/.git
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _pages_deploy
+
+      - name: Deploy GitHub Pages
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,103 @@
+# SPDX-FileCopyrightText: 2026 RyanLin-InfEvo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Deploy Frontend (Flutter Web)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - ".fvmrc"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Flutter Web Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter (pinned in .fvmrc)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - name: Get dependencies and build web release
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /hyperpod-analytics/
+
+      - name: Upload built frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-web-build
+          path: app/build/web
+          retention-days: 2
+
+  publish:
+    name: Publish Frontend to gh-pages & Deploy Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: hyperpod-writer
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Install locked pipeline dependencies
+        working-directory: pipeline
+        run: uv sync --locked
+
+      - name: Configure Git credentials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth setup-git
+
+      - name: Download built frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-web-build
+          path: _web_build
+
+      - name: Publish frontend files while preserving gh-pages data/
+        working-directory: pipeline
+        run: |
+          uv run hyperpod publish --push-only --branch gh-pages --owner frontend \
+            --source-dir ../_web_build \
+            --remote-url "https://github.com/${{ github.repository }}.git" \
+            --commit-message "chore(frontend): deploy flutter web build"
+
+      - name: Prepare Pages artifact from updated gh-pages
+        run: |
+          git clone --depth=1 --single-branch --branch gh-pages "https://github.com/${{ github.repository }}.git" _pages_deploy
+          rm -rf _pages_deploy/.git
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _pages_deploy
+
+      - name: Deploy GitHub Pages
+        uses: actions/deploy-pages@v4
