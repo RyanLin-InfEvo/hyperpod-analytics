@@ -229,14 +229,29 @@ def test_site_data_cross_file_invariants_and_snapshot_replay() -> None:
     assert actual_latest == expected_latest
 
 
-def test_cli_validate_contracts_and_phase_stubs() -> None:
+def test_cli_validate_contracts_and_help_commands() -> None:
     runner = CliRunner()
     res = runner.invoke(app, ["validate-contracts"])
     assert res.exit_code == 0, res.output
     assert "Validated config v1" in res.output
 
-    stub = runner.invoke(app, ["snapshot"])
-    assert stub.exit_code == 2
+    help_res = runner.invoke(app, ["--help"])
+    assert help_res.exit_code == 0, help_res.output
+    for cmd in (
+        "discover",
+        "score",
+        "backfill",
+        "snapshot",
+        "candles",
+        "reconstruct",
+        "bootstrap",
+        "publish",
+        "health",
+        "verify-live",
+        "debug-address",
+        "validate-contracts",
+    ):
+        assert cmd in help_res.output
 
 
 def test_criteria_rejects_unknown_rejected_by_keys_and_accepts_list_rule_values() -> None:

@@ -6,12 +6,11 @@
 from __future__ import annotations
 
 import asyncio
-import gzip
 import json
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import typer
 
@@ -29,23 +28,28 @@ from hyperpod.client.leaderboard import DEFAULT_LEADERBOARD_URL, LeaderboardFetc
 from hyperpod.client.ratelimit import WeightRateLimiter
 from hyperpod.config import PipelineConfig, default_config_path, load_config
 from hyperpod.models import (
-    CandidatesFile,
     ClearinghouseStateResponse,
-    CriteriaFile,
-    FillsFile,
-    Manifest,
     PortfolioResponse,
     RawFill,
-    Snapshot,
     SpotClearinghouseStateResponse,
     SubAccountItem,
     UserFundingEvent,
     UserRoleResponse,
-    Whitelist,
-    validate_candles,
 )
+from hyperpod.ops.health import evaluate_health, verify_live_positions
 from hyperpod.scoring.daily_runner import run_backfill, run_discover, run_score
-from hyperpod.storage.state_store import StateStore
+from hyperpod.snapshot.candles import run_candles
+from hyperpod.snapshot.collect import SnapshotAbortError, run_snapshot
+from hyperpod.snapshot.reconstruct import run_reconstruct
+from hyperpod.storage.git_publish import (
+    BranchName,
+    GitPublishError,
+    PublishOwner,
+    publish_orphan_branch,
+)
+from hyperpod.storage.site_writer import run_daily_publish, validate_site_data_directory
+from hyperpod.storage.state_store import BootstrapDoneFile, StateStore
+from hyperpod.util.time import now_utc_ms
 
 _ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 
@@ -54,90 +58,6 @@ app = typer.Typer(help="HyperPod Hyperliquid main-perp analytics pipeline CLI.")
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
-
-
-def _load_json(path: Path) -> Any:
-    if path.suffix == ".gz":
-        with gzip.open(path, "rt", encoding="utf-8") as fh:
-            return json.load(fh)
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _assert_unique_matching_names(label: str, expected: list[str], actual: set[str]) -> None:
-    if len(expected) != len(set(expected)):
-        raise ValueError(f"Duplicate entries in manifest for {label}: {expected}")
-    if set(expected) != actual:
-        raise ValueError(
-            f"Manifest mismatch for {label}: "
-            f"expected {sorted(expected)}, found {sorted(actual)} on disk"
-        )
-
-
-def _verify_manifest_matches_disk(data_dir: Path, manifest: Manifest) -> None:
-    snap_days = {p.stem for p in (data_dir / "snapshots" / "days").glob("*.json")}
-    snap_months = {
-        p.name.removesuffix(".json.gz")
-        for p in (data_dir / "snapshots" / "months").glob("*.json.gz")
-    }
-    _assert_unique_matching_names("files.snapshotDays", manifest.files.snapshotDays, snap_days)
-    _assert_unique_matching_names(
-        "files.snapshotMonths", manifest.files.snapshotMonths, snap_months
-    )
-
-    fills_root = data_dir / "fills"
-    disk_fill_coins = (
-        {p.name for p in fills_root.iterdir() if p.is_dir()} if fills_root.exists() else set()
-    )
-    if set(manifest.files.fills.keys()) != disk_fill_coins:
-        raise ValueError(
-            f"Manifest fills coins mismatch: manifest={sorted(manifest.files.fills)}, "
-            f"disk={sorted(disk_fill_coins)}"
-        )
-    for coin, fill_files in manifest.files.fills.items():
-        coin_dir = fills_root / coin
-        actual_days = {p.stem for p in (coin_dir / "days").glob("*.json")}
-        actual_months = {
-            p.name.removesuffix(".json.gz") for p in (coin_dir / "months").glob("*.json.gz")
-        }
-        _assert_unique_matching_names(f"files.fills.{coin}.days", fill_files.days, actual_days)
-        _assert_unique_matching_names(
-            f"files.fills.{coin}.months", fill_files.months, actual_months
-        )
-
-    candles_root = data_dir / "candles"
-    disk_candle_coins = (
-        {p.name for p in candles_root.iterdir() if p.is_dir()} if candles_root.exists() else set()
-    )
-    if set(manifest.files.candles.keys()) != disk_candle_coins:
-        raise ValueError(
-            f"Manifest candles coins mismatch: manifest={sorted(manifest.files.candles)}, "
-            f"disk={sorted(disk_candle_coins)}"
-        )
-    for coin, candle_files in manifest.files.candles.items():
-        coin_dir = candles_root / coin
-        actual_5m = {p.name.removesuffix(".json.gz") for p in (coin_dir / "5m").glob("*.json.gz")}
-        _assert_unique_matching_names(
-            f"files.candles.{coin}.months5m", candle_files.months5m, actual_5m
-        )
-        has_backfill = (coin_dir / "backfill_15m_1h.json.gz").is_file()
-        if candle_files.hasBackfill != has_backfill:
-            raise ValueError(
-                f"Manifest candles.{coin}.hasBackfill={candle_files.hasBackfill} "
-                f"does not match disk ({has_backfill})"
-            )
-        has_overview = (coin_dir / "overview_4h.json.gz").is_file()
-        if candle_files.hasOverview4h != has_overview:
-            raise ValueError(
-                f"Manifest candles.{coin}.hasOverview4h={candle_files.hasOverview4h} "
-                f"does not match disk ({has_overview})"
-            )
-
-    actual_bytes = sum(p.stat().st_size for p in data_dir.rglob("*") if p.is_file())
-    if manifest.storage.totalBytesOnDisk != actual_bytes:
-        raise ValueError(
-            f"Manifest storage.totalBytesOnDisk ({manifest.storage.totalBytesOnDisk}) "
-            f"!= actual disk bytes ({actual_bytes})"
-        )
 
 
 @app.command("validate-contracts")
@@ -152,39 +72,20 @@ def validate_contracts(
     """Validate config/pipeline.yaml metadata and all site-data files against Pydantic contracts."""
     cfg = load_config(config_path or default_config_path())
     data_dir = site_data_dir or (_repo_root() / "fixtures" / "site-data")
-
-    manifest = Manifest.model_validate(_load_json(data_dir / "manifest.json"))
-    Whitelist.model_validate(_load_json(data_dir / "whitelist.json"))
-    CriteriaFile.model_validate(_load_json(data_dir / "criteria.json"))
-    CandidatesFile.model_validate(_load_json(data_dir / "candidates.json"))
-
-    Snapshot.model_validate(_load_json(data_dir / "snapshots" / "latest.json"))
-    for path in sorted((data_dir / "snapshots" / "days").glob("*.json")):
-        Snapshot.model_validate(_load_json(path))
-    for path in sorted((data_dir / "snapshots" / "months").glob("*.json.gz")):
-        Snapshot.model_validate(_load_json(path))
-
-    for path in sorted((data_dir / "fills").glob("*/days/*.json")):
-        FillsFile.model_validate(_load_json(path))
-    for path in sorted((data_dir / "fills").glob("*/months/*.json.gz")):
-        FillsFile.model_validate(_load_json(path))
-
-    for path in sorted((data_dir / "candles").glob("*/*/*.json.gz")):
-        validate_candles(_load_json(path))
-    for path in sorted((data_dir / "candles").glob("*/*.json.gz")):
-        validate_candles(_load_json(path))
-
-    _verify_manifest_matches_disk(data_dir, manifest)
+    try:
+        manifest = validate_site_data_directory(
+            data_dir,
+            schemas_dir=_repo_root() / "schemas",
+            validate_jsonschema=False,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        typer.echo(f"Contract validation failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
 
     typer.echo(
         f"Validated config v{cfg.schemaVersion} and site-data manifest "
         f"({manifest.whitelistVersion}, {manifest.storage.totalBytesOnDisk} B)."
     )
-
-
-def _not_implemented(cmd: str, phase: str) -> None:
-    typer.echo(f"Command '{cmd}' is scheduled for implementation in {phase}.", err=True)
-    raise typer.Exit(code=2)
 
 
 def _summarize_debug_address(
@@ -727,54 +628,637 @@ def backfill(
     typer.echo(json.dumps(summary, indent=2))
 
 
+def _default_data_dir() -> Path:
+    return _repo_root() / "data"
+
+
 @app.command("snapshot")
-def snapshot() -> None:
+def snapshot(
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
+    local_budget: Annotated[
+        bool,
+        typer.Option("--local-budget/--ci-budget", help="Select local vs CI rate-limit budget"),
+    ] = False,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
+) -> None:
     """Capture 10-minute position snapshot and incremental whitelist fills (Phase 4)."""
-    _not_implemented("snapshot", "Phase 4")
+    cfg = load_config(config_path or default_config_path())
+    store = StateStore(state_dir or _default_state_dir(), owner="fast")
+    try:
+        res = asyncio.run(
+            run_snapshot(
+                cfg,
+                store,
+                data_dir=data_dir or _default_data_dir(),
+                schemas_dir=_repo_root() / "schemas",
+                local_budget=local_budget,
+                info_url=info_url,
+            )
+        )
+    except (
+        FileNotFoundError,
+        InfoApiError,
+        PermissionError,
+        SnapshotAbortError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"snapshot failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    summary = {
+        "tNow": res.t_now,
+        "dateStr": res.date_str,
+        "activeCount": res.active_count,
+        "failedCount": res.failed_count,
+        "staleIds": res.stale_ids,
+        "fillsPolledCount": res.fills_polled_count,
+        "fillsRowsUpserted": res.fills_rows_upserted,
+        "posChangesEmitted": res.pos_changes_emitted,
+        "coins": res.coins,
+        "warnings": res.warnings,
+        "rateLimitStats": res.rate_limit_stats,
+    }
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("candles")
-def candles() -> None:
-    """Archive 5m and 4h candles for tracked coins (Phase 4)."""
-    _not_implemented("candles", "Phase 4")
+def candles(
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
+    full_backfill: Annotated[
+        bool,
+        typer.Option("--full-backfill", help="Fetch full 5m/15m/1h/4h lookback depth"),
+    ] = False,
+    include_today_5m: Annotated[
+        bool,
+        typer.Option("--include-today-5m", help="Include today's partial 5m candles"),
+    ] = False,
+    local_budget: Annotated[
+        bool,
+        typer.Option("--local-budget/--ci-budget", help="Select local vs CI rate-limit budget"),
+    ] = False,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
+) -> None:
+    """Archive 5m, 4h, and queued 15m/1h backfill candles for tracked coins (Phase 4)."""
+    cfg = load_config(config_path or default_config_path())
+    store = StateStore(state_dir or _default_state_dir(), owner="daily")
+    try:
+        res = asyncio.run(
+            run_candles(
+                cfg,
+                store,
+                data_dir=data_dir or _default_data_dir(),
+                schemas_dir=_repo_root() / "schemas",
+                full_backfill=full_backfill,
+                include_today_5m=include_today_5m,
+                local_budget=local_budget,
+                info_url=info_url,
+            )
+        )
+    except (FileNotFoundError, InfoApiError, PermissionError, ValueError) as exc:
+        typer.echo(f"candles failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    summary = {
+        "coinsProcessed": res.coins_processed,
+        "coinStats": res.coin_stats,
+        "errors": res.errors,
+        "warnings": res.warnings,
+        "rateLimitStats": res.rate_limit_stats,
+    }
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("reconstruct")
-def reconstruct() -> None:
+def reconstruct(
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
+    launched_at: Annotated[
+        int | None,
+        typer.Option("--launched-at", min=0, help="Launch timestamp in UTC epoch ms"),
+    ] = None,
+    write_fills: Annotated[
+        bool,
+        typer.Option("--write-fills/--no-write-fills", help="Write historical whitelist fills"),
+    ] = True,
+    local_budget: Annotated[
+        bool,
+        typer.Option("--local-budget/--ci-budget", help="Select local vs CI rate-limit budget"),
+    ] = True,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
+) -> None:
     """Reconstruct pre-launch historical snapshots from fills and portfolio curves (Phase 4)."""
-    _not_implemented("reconstruct", "Phase 4")
+    cfg = load_config(config_path or default_config_path())
+    store = StateStore(state_dir or _default_state_dir(), owner="daily")
+    try:
+        res = asyncio.run(
+            run_reconstruct(
+                cfg,
+                store,
+                data_dir=data_dir or _default_data_dir(),
+                schemas_dir=_repo_root() / "schemas",
+                launched_at_ms=launched_at,
+                write_fills=write_fills,
+                local_budget=local_budget,
+                info_url=info_url,
+            )
+        )
+    except (FileNotFoundError, InfoApiError, KeyError, PermissionError, ValueError) as exc:
+        typer.echo(f"reconstruct failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    summary = {
+        "launchedAt": res.launched_at,
+        "reconstructStart": res.reconstruct_start,
+        "cutoff1h": res.cutoff_1h,
+        "daysReconstructed": res.days_reconstructed,
+        "hotDaysWritten": res.hot_days_written,
+        "monthsWritten": res.months_written,
+        "activeAddresses": res.active_addresses,
+        "sziMismatches": res.szi_mismatches,
+        "fillsRowsUpserted": res.fills_rows_upserted,
+        "warnings": res.warnings,
+        "rateLimitStats": res.rate_limit_stats,
+    }
+    typer.echo(json.dumps(summary, indent=2))
+
+
+@app.command("publish")
+def publish(
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
+    artifact_dir: Annotated[
+        Path | None, typer.Option("--artifact-dir", help="Optional artifact dir from score job")
+    ] = None,
+    fetch_fills: Annotated[
+        bool,
+        typer.Option("--fetch-fills/--no-fetch-fills", help="Fetch missing/new-member fills"),
+    ] = True,
+    local_budget: Annotated[
+        bool,
+        typer.Option("--local-budget/--ci-budget", help="Select local vs CI rate-limit budget"),
+    ] = False,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
+    remote_url: Annotated[
+        str | None, typer.Option("--remote-url", help="Git remote URL or bare repo path")
+    ] = None,
+    push_state: Annotated[
+        bool, typer.Option("--push-state", help="Push scoped state partition to state branch")
+    ] = False,
+    push_gh_pages: Annotated[
+        bool, typer.Option("--push-gh-pages", help="Push scoped output to gh-pages branch")
+    ] = False,
+    push_only: Annotated[
+        bool,
+        typer.Option("--push-only", help="Only run git_publish without daily merge/compaction"),
+    ] = False,
+    branch: Annotated[
+        str | None,
+        typer.Option("--branch", help="Target branch when using --push-only (state|gh-pages)"),
+    ] = None,
+    owner: Annotated[
+        str,
+        typer.Option("--owner", help="Publish owner (fast|daily|frontend|bootstrap)"),
+    ] = "daily",
+    source_dir: Annotated[
+        Path | None,
+        typer.Option("--source-dir", help="Override source dir for --push-only"),
+    ] = None,
+    commit_message: Annotated[
+        str | None,
+        typer.Option("--commit-message", help="Commit message for orphan branch push"),
+    ] = None,
+) -> None:
+    """Compact >7d daily archives to monthly gzip and publish gh-pages/state (Phase 4)."""
+    if owner not in {"fast", "daily", "frontend", "bootstrap"}:
+        typer.echo(f"Invalid --owner: {owner!r}", err=True)
+        raise typer.Exit(code=2)
+    typed_owner = cast(PublishOwner, owner)
+    cfg = load_config(config_path or default_config_path())
+    eff_state_dir = state_dir or _default_state_dir()
+    eff_data_dir = data_dir or _default_data_dir()
+    schemas_dir = _repo_root() / "schemas"
+
+    if push_only:
+        if remote_url is None:
+            typer.echo("--remote-url is required with --push-only", err=True)
+            raise typer.Exit(code=2)
+        if branch not in {"state", "gh-pages"}:
+            typer.echo("--branch must be 'state' or 'gh-pages' with --push-only", err=True)
+            raise typer.Exit(code=2)
+        typed_branch = cast(BranchName, branch)
+        eff_source = source_dir or (eff_state_dir if typed_branch == "state" else eff_data_dir)
+        msg = commit_message or f"chore(publish): update {typed_branch} ({typed_owner})"
+        try:
+            git_res = publish_orphan_branch(
+                eff_source,
+                remote_url=remote_url,
+                branch=typed_branch,
+                owner=typed_owner,
+                commit_message=msg,
+                cfg=cfg,
+                schemas_dir=schemas_dir,
+            )
+        except (GitPublishError, ValueError, FileNotFoundError) as exc:
+            typer.echo(f"publish --push-only failed: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+        typer.echo(
+            json.dumps(
+                {
+                    "branch": git_res.branch,
+                    "owner": git_res.owner,
+                    "commitSha": git_res.commit_sha,
+                    "attempts": git_res.attempts,
+                    "hadRemoteBranch": git_res.had_remote_branch,
+                },
+                indent=2,
+            )
+        )
+        return
+
+    if (push_state or push_gh_pages) and remote_url is None:
+        typer.echo("--remote-url is required when --push-state or --push-gh-pages is set", err=True)
+        raise typer.Exit(code=2)
+
+    store = StateStore(eff_state_dir, owner="daily")
+    try:
+        res = asyncio.run(
+            run_daily_publish(
+                cfg,
+                store,
+                data_dir=eff_data_dir,
+                schemas_dir=schemas_dir,
+                artifact_dir=artifact_dir,
+                fetch_missing_fills=fetch_fills,
+                local_budget=local_budget,
+                info_url=info_url,
+            )
+        )
+        pushed: list[dict[str, object]] = []
+        if push_state:
+            assert remote_url is not None
+            st_res = publish_orphan_branch(
+                eff_state_dir,
+                remote_url=remote_url,
+                branch="state",
+                owner=typed_owner,
+                commit_message=commit_message or f"chore(state): {typed_owner} publish",
+                cfg=cfg,
+                schemas_dir=schemas_dir,
+            )
+            pushed.append(
+                {
+                    "branch": st_res.branch,
+                    "commitSha": st_res.commit_sha,
+                    "attempts": st_res.attempts,
+                }
+            )
+        if push_gh_pages:
+            assert remote_url is not None
+            gp_res = publish_orphan_branch(
+                eff_data_dir,
+                remote_url=remote_url,
+                branch="gh-pages",
+                owner=typed_owner,
+                commit_message=commit_message or f"chore(data): {typed_owner} publish",
+                cfg=cfg,
+                schemas_dir=schemas_dir,
+            )
+            pushed.append(
+                {
+                    "branch": gp_res.branch,
+                    "commitSha": gp_res.commit_sha,
+                    "attempts": gp_res.attempts,
+                }
+            )
+    except (
+        FileNotFoundError,
+        GitPublishError,
+        InfoApiError,
+        PermissionError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"publish failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    summary = {
+        "whitelistVersion": res.manifest.whitelistVersion,
+        "criteriaVersion": res.manifest.criteriaVersion,
+        "snapshotDaysCompacted": res.compaction.snapshot_days_compacted,
+        "snapshotMonthsUpdated": res.compaction.snapshot_months_updated,
+        "fillDaysCompacted": res.compaction.fill_days_compacted,
+        "fillMonthsUpdated": res.compaction.fill_months_updated,
+        "fillsRowsUpserted": res.fills_rows_upserted,
+        "fillsAddressesPolled": res.fills_addresses_polled,
+        "totalBytesOnDisk": res.manifest.storage.totalBytesOnDisk,
+        "pushed": pushed,
+        "warnings": res.warnings,
+        "rateLimitStats": res.rate_limit_stats,
+    }
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("bootstrap")
 def bootstrap(
-    budget_minutes: Annotated[int | None, typer.Option("--budget-minutes")] = None,
+    budget_minutes: Annotated[
+        float | None,
+        typer.Option("--budget-minutes", min=0.0, help="Stop backfill cleanly after N minutes"),
+    ] = None,
+    limit: Annotated[
+        int | None, typer.Option("--limit", min=1, help="Optional candidate cap for backfill")
+    ] = None,
+    checkpoint_every: Annotated[
+        int, typer.Option("--checkpoint-every", min=1, help="Checkpoint cadence during backfill")
+    ] = 20,
+    skip_backfill: Annotated[
+        bool,
+        typer.Option("--skip-backfill", help="Skip backfill stage and score existing shards"),
+    ] = False,
+    refresh_discover: Annotated[
+        bool, typer.Option("--refresh-discover", help="Force fresh leaderboard discovery")
+    ] = False,
+    push_remote: Annotated[
+        str | None,
+        typer.Option("--push-remote", help="Optional git remote URL to push state and gh-pages"),
+    ] = None,
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
+    seed_file: Annotated[
+        Path | None, typer.Option("--seed-file", help="Path to seed_addresses.txt")
+    ] = None,
+    blocklist_file: Annotated[
+        Path | None, typer.Option("--blocklist-file", help="Path to blocklist.txt")
+    ] = None,
+    leaderboard_url: Annotated[
+        str, typer.Option("--leaderboard-url", help="Hyperliquid leaderboard URL")
+    ] = DEFAULT_LEADERBOARD_URL,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
 ) -> None:
     """Run one-time full history backfill, candle archive, and reconstruction (Phase 4)."""
-    _ = budget_minutes
-    _not_implemented("bootstrap", "Phase 4")
+    cfg = load_config(config_path or default_config_path())
+    eff_state_dir = state_dir or _default_state_dir()
+    eff_data_dir = data_dir or _default_data_dir()
+    eff_seed = seed_file or _default_seed_file()
+    eff_blocklist = blocklist_file or _default_blocklist_file()
+    schemas_dir = _repo_root() / "schemas"
+    store = StateStore(eff_state_dir, owner="bootstrap")
 
+    async def _run_all() -> dict[str, Any]:
+        if not skip_backfill:
+            bf_res = await run_backfill(
+                cfg,
+                store,
+                seed_file=eff_seed,
+                blocklist_file=eff_blocklist,
+                budget_minutes=budget_minutes,
+                checkpoint_every=checkpoint_every,
+                limit=limit,
+                refresh_discover=refresh_discover,
+                local_budget=True,
+                leaderboard_url=leaderboard_url,
+                info_url=info_url,
+            )
+            if not bf_res.completed:
+                return {
+                    "completed": False,
+                    "stage": "backfill",
+                    "processedThisRun": bf_res.processed_this_run,
+                    "totalProcessed": bf_res.total_processed,
+                    "totalCandidates": bf_res.total_candidates,
+                    "nextIndex": bf_res.next_index,
+                    "budgetExhausted": bf_res.budget_exhausted,
+                    "warnings": bf_res.warnings,
+                }
 
-@app.command("publish")
-def publish() -> None:
-    """Compact >7d daily archives to monthly gzip and publish gh-pages/state (Phase 4)."""
-    _not_implemented("publish", "Phase 4")
+        score_res = await run_score(
+            cfg,
+            store,
+            seed_file=eff_seed,
+            blocklist_file=eff_blocklist,
+            schemas_dir=schemas_dir,
+            data_dir=eff_data_dir,
+            offline=True,
+            local_budget=True,
+            leaderboard_url=leaderboard_url,
+            info_url=info_url,
+        )
+        candles_res = await run_candles(
+            cfg,
+            store,
+            data_dir=eff_data_dir,
+            schemas_dir=schemas_dir,
+            full_backfill=True,
+            include_today_5m=True,
+            local_budget=True,
+            info_url=info_url,
+        )
+        recon_res = await run_reconstruct(
+            cfg,
+            store,
+            data_dir=eff_data_dir,
+            schemas_dir=schemas_dir,
+            launched_at_ms=None,
+            write_fills=True,
+            local_budget=True,
+            info_url=info_url,
+        )
+        launched_at = recon_res.launched_at
+        store.save_fast_fill_cursors(recon_res.fill_cursors_by_id)
+        store.save_daily_publish_fill_cursors(recon_res.fill_cursors_by_id)
+
+        snap_res = await run_snapshot(
+            cfg,
+            store,
+            data_dir=eff_data_dir,
+            schemas_dir=schemas_dir,
+            now_ms=max(launched_at, now_utc_ms()),
+            local_budget=True,
+            info_url=info_url,
+        )
+        manifest = validate_site_data_directory(eff_data_dir, schemas_dir=schemas_dir)
+        done_file = BootstrapDoneFile(
+            completedAt=now_utc_ms(),
+            launchedAt=launched_at,
+            whitelistVersion=manifest.whitelistVersion,
+            criteriaVersion=manifest.criteriaVersion,
+            activeWhitelistCount=score_res.whitelist_update.active_count,
+            trackedCoins=snap_res.coins,
+            reconstructDays=cfg.snapshot.reconstructDays.value,
+            reconstructStart=recon_res.reconstruct_start,
+        )
+        store.save_bootstrap_done(done_file)
+
+        pushed: list[dict[str, object]] = []
+        if push_remote is not None:
+            st_res = publish_orphan_branch(
+                eff_state_dir,
+                remote_url=push_remote,
+                branch="state",
+                owner="bootstrap",
+                commit_message="chore(state): initial bootstrap state",
+                cfg=cfg,
+                schemas_dir=schemas_dir,
+            )
+            gp_res = publish_orphan_branch(
+                eff_data_dir,
+                remote_url=push_remote,
+                branch="gh-pages",
+                owner="bootstrap",
+                commit_message="chore(data): initial bootstrap site data",
+                cfg=cfg,
+                schemas_dir=schemas_dir,
+            )
+            pushed.extend(
+                [
+                    {"branch": st_res.branch, "commitSha": st_res.commit_sha},
+                    {"branch": gp_res.branch, "commitSha": gp_res.commit_sha},
+                ]
+            )
+
+        return {
+            "completed": True,
+            "stage": "done",
+            "launchedAt": launched_at,
+            "activeWhitelistCount": score_res.whitelist_update.active_count,
+            "trackedCoins": snap_res.coins,
+            "candlesCoins": candles_res.coins_processed,
+            "daysReconstructed": recon_res.days_reconstructed,
+            "monthsWritten": recon_res.months_written,
+            "sziMismatches": recon_res.szi_mismatches,
+            "totalBytesOnDisk": manifest.storage.totalBytesOnDisk,
+            "pushed": pushed,
+            "warnings": [*recon_res.warnings, *snap_res.warnings],
+        }
+
+    try:
+        summary = asyncio.run(_run_all())
+    except (
+        FileNotFoundError,
+        GitPublishError,
+        InfoApiError,
+        KeyError,
+        LeaderboardFetchError,
+        PermissionError,
+        SnapshotAbortError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"bootstrap failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(json.dumps(summary, indent=2))
 
 
 @app.command("health")
 def health(
-    hours: Annotated[int | None, typer.Option("--hours")] = None,
-    days: Annotated[int | None, typer.Option("--days")] = None,
+    hours: Annotated[float | None, typer.Option("--hours", min=0.1)] = None,
+    days: Annotated[float | None, typer.Option("--days", min=0.1)] = None,
+    max_gap_minutes: Annotated[float, typer.Option("--max-gap-minutes", min=1.0)] = 30.0,
+    min_success_rate: Annotated[float, typer.Option("--min-success-rate", min=0.0, max=1.0)] = 0.95,
+    max_avg_fast_weight: Annotated[float, typer.Option("--max-avg-fast-weight", min=1.0)] = 1500.0,
+    state_dir: Annotated[
+        Path | None, typer.Option("--state-dir", help="Path to state directory")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
 ) -> None:
     """Evaluate pipeline health from state runs.jsonl and snapshot intervals (Phase 4)."""
-    _ = (hours, days)
-    _not_implemented("health", "Phase 4")
+    if hours is not None and days is not None:
+        typer.echo("Specify either --hours or --days, not both.", err=True)
+        raise typer.Exit(code=2)
+    eff_hours = (days * 24.0) if days is not None else (hours if hours is not None else 24.0)
+    report = evaluate_health(
+        state_dir or _default_state_dir(),
+        data_dir or _default_data_dir(),
+        hours=eff_hours,
+        max_gap_minutes=max_gap_minutes,
+        min_success_rate=min_success_rate,
+        max_avg_fast_weight=max_avg_fast_weight,
+    )
+    typer.echo(json.dumps(report.to_dict(), indent=2))
+    if not report.healthy:
+        raise typer.Exit(code=1)
 
 
 @app.command("verify-live")
-def verify_live(sample: Annotated[int, typer.Option("--sample")] = 3) -> None:
+def verify_live(
+    sample: Annotated[int, typer.Option("--sample", min=1)] = 3,
+    seed: Annotated[int | None, typer.Option("--seed")] = None,
+    config_path: Annotated[
+        Path | None, typer.Option("--config", help="Path to pipeline.yaml")
+    ] = None,
+    data_dir: Annotated[
+        Path | None, typer.Option("--data-dir", help="Path to public site data directory")
+    ] = None,
+    info_url: Annotated[
+        str, typer.Option("--info-url", help="Hyperliquid Info API URL")
+    ] = DEFAULT_INFO_URL,
+) -> None:
     """Verify published latest snapshot against live Hyperliquid API (Phase 4)."""
-    _ = sample
-    _not_implemented("verify-live", "Phase 4")
+    cfg = load_config(config_path or default_config_path())
+    try:
+        report = asyncio.run(
+            verify_live_positions(
+                data_dir or _default_data_dir(),
+                cfg,
+                sample=sample,
+                seed=seed,
+                info_url=info_url,
+            )
+        )
+    except (FileNotFoundError, InfoApiError, ValueError) as exc:
+        typer.echo(f"verify-live failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(json.dumps(report.to_dict(), indent=2))
+    if not report.passed:
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
