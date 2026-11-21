@@ -1,0 +1,186 @@
+{
+  "current": {
+    "effectiveFrom": 1795292655638,
+    "gates": [
+      {
+        "description": "Hyperliquid userRole values rejected immediately before calling additional Stage 2 endpoints.",
+        "key": "excludeRoles",
+        "label": "Excluded account roles",
+        "op": "not_in",
+        "unit": "role",
+        "value": [
+          "vault",
+          "agent",
+          "missing"
+        ]
+      },
+      {
+        "description": "Maximum average aggregated (aggregateByTime=true) main-perp fills per active UTC day over the last 30 days.",
+        "key": "hft.fillsPerDay",
+        "label": "Max fills per day",
+        "op": "<=",
+        "unit": "count",
+        "value": 500.0
+      },
+      {
+        "description": "Minimum median holding duration in minutes across completed main-perp round-trip trades.",
+        "key": "hft.medianHoldMinutes",
+        "label": "Min median hold duration",
+        "op": ">=",
+        "unit": "minutes",
+        "value": 5.0
+      },
+      {
+        "description": "Minimum day span covered when userFillsByTime hits the 10,000-fill rolling cap.",
+        "key": "hft.minTruncatedSpanDays",
+        "label": "Min 10k-fill span days",
+        "op": ">=",
+        "unit": "days",
+        "value": 7.0
+      },
+      {
+        "description": "Maker fill ratio paired with mm.turnoverMonth to exclude high-turnover market makers.",
+        "key": "mm.makerRatio",
+        "label": "Max MM maker ratio",
+        "op": "<=",
+        "unit": "ratio",
+        "value": 0.9
+      },
+      {
+        "description": "Monthly turnover threshold paired with mm.makerRatio to exclude market makers.",
+        "key": "mm.turnoverMonth",
+        "label": "Max MM monthly turnover",
+        "op": "<=",
+        "unit": "x",
+        "value": 30.0
+      },
+      {
+        "description": "Maximum ratio of |net main-perp userFunding| to max(|pnlAllTime|, 1.0).",
+        "key": "funding.maxShare",
+        "label": "Max funding PnL share",
+        "op": "<=",
+        "unit": "ratio",
+        "value": 0.5
+      },
+      {
+        "description": "Maximum notional-weighted spot token coverage ratio across open perp short positions.",
+        "key": "hedge.maxRatio",
+        "label": "Max spot-perp hedge ratio",
+        "op": "<=",
+        "unit": "ratio",
+        "value": 0.8
+      },
+      {
+        "description": "Minimum completed main-perp round-trip trades closed within the last 90 UTC days.",
+        "key": "passive.minRecentTrades90d",
+        "label": "Min trades in 90 days",
+        "op": ">=",
+        "unit": "count",
+        "value": 5
+      },
+      {
+        "description": "Minimum completed main-perp round-trip trades required for statistical validity.",
+        "key": "sample.minTrades",
+        "label": "Min total trades",
+        "op": ">=",
+        "unit": "count",
+        "value": 20
+      },
+      {
+        "description": "Minimum elapsed calendar days since the earliest available main-perp fill.",
+        "key": "sample.minHistoryDays",
+        "label": "Min history days",
+        "op": ">=",
+        "unit": "days",
+        "value": 30.0
+      },
+      {
+        "description": "Maximum peak-to-trough perpAllTime PnL drawdown relative to peak accountValue.",
+        "key": "mdd.maxDrawdown",
+        "label": "Max drawdown",
+        "op": "<=",
+        "unit": "ratio",
+        "value": 0.45
+      },
+      {
+        "description": "Minimum profit factor after removing the single largest winning trade (null/zero-loss passes).",
+        "key": "pf.minRobust",
+        "label": "Min robust profit factor",
+        "op": ">=",
+        "unit": "ratio",
+        "value": 1.5
+      },
+      {
+        "description": "Maximum share of total gross winning PnL attributable to a single trade.",
+        "key": "lucky.maxTopWinShare",
+        "label": "Max top win share",
+        "op": "<=",
+        "unit": "ratio",
+        "value": 0.5
+      }
+    ],
+    "hash": "sha256:a32d85a12385196be288f42d78998fe2cdda9f8dd4aa1bf5a42e339eae2c6f4b",
+    "membership": {
+      "excludeVaults": true,
+      "exitAfterFailedDays": 3,
+      "subaccounts": "merge_after_filter"
+    },
+    "scope": {
+      "hip3": false,
+      "perpDex": "main",
+      "spot": false
+    },
+    "stage1": [
+      {
+        "description": "Minimum account equity in USD required from leaderboard or subaccount evaluation to enter Stage 2.",
+        "key": "minAccountValue",
+        "label": "Min account value",
+        "op": ">=",
+        "unit": "USD",
+        "value": 1000000.0
+      },
+      {
+        "description": "Leaderboard all-time PnL must be strictly positive (> 0 USD).",
+        "key": "minPnlAllTime",
+        "label": "Min all-time PnL",
+        "op": ">",
+        "unit": "USD",
+        "value": 0.0
+      },
+      {
+        "description": "Leaderboard monthly PnL divided by accountValue must exceed -0.20.",
+        "key": "minPnlMonthRatio",
+        "label": "Min monthly PnL / AV ratio",
+        "op": ">",
+        "unit": "ratio",
+        "value": -0.2
+      },
+      {
+        "description": "Maximum leaderboard monthly volume divided by accountValue to pre-exclude market makers.",
+        "key": "maxTurnoverMonth",
+        "label": "Max monthly turnover",
+        "op": "<=",
+        "unit": "x",
+        "value": 150.0
+      }
+    ],
+    "stats": {
+      "candidates": 1574,
+      "passed": 9,
+      "rejectedBy": {
+        "hedge": 49,
+        "hft": 945,
+        "lucky": 307,
+        "mdd": 613,
+        "mm": 38,
+        "passive": 1314,
+        "pf": 1374,
+        "role": 13,
+        "sample": 1259
+      }
+    },
+    "version": 1
+  },
+  "history": [],
+  "schemaVersion": 1
+}

@@ -1,0 +1,905 @@
+{
+  "addresses": {
+    "0x01bb092c2e4fef1d68ef1ca66e9b1db29f0cf7b7": {
+      "abstraction": "unifiedAccount",
+      "address": "0x01bb092c2e4fef1d68ef1ca66e9b1db29f0cf7b7",
+      "coverageStart": 1736700487077,
+      "failStreak": 0,
+      "id": 0,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1763683200000,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1666166.33215302,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 5.2,
+        "fundingShare": 0.048482440873755014,
+        "hedgeRatio": 0.0,
+        "historyDays": 684.6320445833334,
+        "makerRatio": 0.8846153846153846,
+        "maxDrawdown": 0.22202680893293378,
+        "medianHoldMinutes": 1873.0713833333334,
+        "nTrades": 131,
+        "pnlAllTime": 671389.546924,
+        "pnlMonth": 32321.681775,
+        "profitFactor": 2.2769331160359365,
+        "profitFactorRobust": 1.9039883568514808,
+        "roiAllTime": 0.6749145141,
+        "topWinShare": 0.16379258422563592,
+        "turnoverMonth": 0.8868626928084467,
+        "winRate": 0.5954198473282443
+      },
+      "score": 0.34375,
+      "subAccounts": []
+    },
+    "0x21eaaee21905a7b9fbbb093caba2ee27fc1e9352": {
+      "abstraction": "unifiedAccount",
+      "address": "0x21eaaee21905a7b9fbbb093caba2ee27fc1e9352",
+      "coverageStart": 1762336854773,
+      "failStreak": 0,
+      "id": 1,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1763683200000,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1355470.797713,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 6.533333333333333,
+        "fundingShare": 0.020872815639655276,
+        "hedgeRatio": 0.0,
+        "historyDays": 387.91482587962963,
+        "makerRatio": 0.9795918367346939,
+        "maxDrawdown": 0.28302962895108985,
+        "medianHoldMinutes": 1437.12705,
+        "nTrades": 58,
+        "pnlAllTime": 1217217.703477,
+        "pnlMonth": 68636.740922,
+        "profitFactor": 9.033023035212596,
+        "profitFactorRobust": 7.683831951630088,
+        "roiAllTime": 0.7567710696,
+        "topWinShare": 0.1493620771609995,
+        "turnoverMonth": 3.7025593310219245,
+        "winRate": 0.896551724137931
+      },
+      "score": 0.55625,
+      "subAccounts": [
+        "0x268543bf57a8f322eda939eb37d18dc7a98b522a"
+      ]
+    },
+    "0x3ed46593ed1fd21f1ca11dd45541d51076957039": {
+      "abstraction": "unifiedAccount",
+      "address": "0x3ed46593ed1fd21f1ca11dd45541d51076957039",
+      "coverageStart": 1781807345591,
+      "failStreak": 3,
+      "id": 2,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1781807345591,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          1795852695729,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 776024.9538250001,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 8.533333333333333,
+        "fundingShare": 0.011242089974296503,
+        "hedgeRatio": 0.0,
+        "historyDays": 162.56192289351853,
+        "makerRatio": 0.59375,
+        "maxDrawdown": 0.5026174238130547,
+        "medianHoldMinutes": 176.32266666666666,
+        "nTrades": 57,
+        "pnlAllTime": 759595.602021,
+        "pnlMonth": 611958.240391,
+        "profitFactor": 4.354768116519288,
+        "profitFactorRobust": 3.3325244257712905,
+        "roiAllTime": 0.6300433429,
+        "topWinShare": 0.23474124531918014,
+        "turnoverMonth": 117.04121503093084,
+        "winRate": 0.7543859649122807
+      },
+      "score": 0.44,
+      "subAccounts": []
+    },
+    "0x997f2f901ec568fcf1014c74f9ab4a3c6515a4c3": {
+      "abstraction": "unifiedAccount",
+      "address": "0x997f2f901ec568fcf1014c74f9ab4a3c6515a4c3",
+      "coverageStart": 1790856951184,
+      "failStreak": 0,
+      "id": 9,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1795596330615,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1049954.4670300002,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 45.82142857142857,
+        "fundingShare": 0.009995413086048895,
+        "hedgeRatio": 0.0,
+        "historyDays": 57.82111741898148,
+        "makerRatio": 0.9664848012470771,
+        "maxDrawdown": 0.20545802352901532,
+        "medianHoldMinutes": 27954.773133333332,
+        "nTrades": 27,
+        "pnlAllTime": 1395753.360156,
+        "pnlMonth": 1061109.612768,
+        "profitFactor": 5.801305200236188,
+        "profitFactorRobust": 4.779195393295824,
+        "roiAllTime": 1.9932306155,
+        "topWinShare": 0.17618618080957907,
+        "turnoverMonth": 8.472633546827721,
+        "winRate": 0.8148148148148148
+      },
+      "score": 0.6875,
+      "subAccounts": []
+    },
+    "0xbc433ba7c34752448c5361e5ed3038628a1753b0": {
+      "abstraction": "unifiedAccount",
+      "address": "0xbc433ba7c34752448c5361e5ed3038628a1753b0",
+      "coverageStart": 1748222520759,
+      "failStreak": 0,
+      "id": 3,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1763683200000,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1725038.25033784,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 2.5454545454545454,
+        "fundingShare": 0.10975645404676343,
+        "hedgeRatio": 0.0,
+        "historyDays": 551.2751732638889,
+        "makerRatio": 0.32142857142857145,
+        "maxDrawdown": 0.4471247650227147,
+        "medianHoldMinutes": 8436.99785,
+        "nTrades": 43,
+        "pnlAllTime": 1684799.352102,
+        "pnlMonth": 504516.228897,
+        "profitFactor": 3.0788348871483717,
+        "profitFactorRobust": 2.207508877292522,
+        "roiAllTime": 1.5375560784,
+        "topWinShare": 0.28300511128184447,
+        "turnoverMonth": 1.497527100917371,
+        "winRate": 0.5348837209302325
+      },
+      "score": 0.43125,
+      "subAccounts": []
+    },
+    "0xc2ba3e0583f0ea1b9c81eee804c1e3dcd16d0b69": {
+      "abstraction": "unifiedAccount",
+      "address": "0xc2ba3e0583f0ea1b9c81eee804c1e3dcd16d0b69",
+      "coverageStart": 1790856520561,
+      "failStreak": 0,
+      "id": 10,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1795596330615,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1112369.71461,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 41.4,
+        "fundingShare": 0.01164279864562258,
+        "hedgeRatio": 0.0,
+        "historyDays": 57.82610148148148,
+        "makerRatio": 0.9541062801932367,
+        "maxDrawdown": 0.1885751094805497,
+        "medianHoldMinutes": 16053.294016666667,
+        "nTrades": 21,
+        "pnlAllTime": 1805101.748015,
+        "pnlMonth": 1292998.406355,
+        "profitFactor": 25.251622558059147,
+        "profitFactorRobust": 18.067606692474957,
+        "roiAllTime": 2.0393251785,
+        "topWinShare": 0.28449719811336976,
+        "turnoverMonth": 6.437851099273017,
+        "winRate": 0.7619047619047619
+      },
+      "score": 0.80625,
+      "subAccounts": []
+    },
+    "0xc3b972d8dd1d74e1b63d39c14a34757aec9d2507": {
+      "abstraction": "unifiedAccount",
+      "address": "0xc3b972d8dd1d74e1b63d39c14a34757aec9d2507",
+      "coverageStart": 1790017642013,
+      "failStreak": 0,
+      "id": 4,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1790017642013,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1015859.005948,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 141.1304347826087,
+        "fundingShare": 0.04224632266487812,
+        "hedgeRatio": 0.0,
+        "historyDays": 67.53534393518518,
+        "makerRatio": 0.6327788046826864,
+        "maxDrawdown": 0.4103874933215352,
+        "medianHoldMinutes": 27916.454850000002,
+        "nTrades": 24,
+        "pnlAllTime": 339324.633027,
+        "pnlMonth": 261484.569827,
+        "profitFactor": 27.091093727806832,
+        "profitFactorRobust": 19.86194867737278,
+        "roiAllTime": 0.5027116503,
+        "topWinShare": 0.26684581741393165,
+        "turnoverMonth": 0.8340938801928315,
+        "winRate": 0.7916666666666666
+      },
+      "score": 0.475,
+      "subAccounts": []
+    },
+    "0xce508465b243216fcf372d3146fd62e8f7a7b8e2": {
+      "abstraction": "default",
+      "address": "0xce508465b243216fcf372d3146fd62e8f7a7b8e2",
+      "coverageStart": 1776412544582,
+      "failStreak": 0,
+      "id": 5,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1776412544582,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1704215.03744,
+        "equitySource": "perp",
+        "fillsPerDay": 5.5,
+        "fundingShare": 0.13540250011394342,
+        "hedgeRatio": 0.0,
+        "historyDays": 225.00174938657406,
+        "makerRatio": 0.0,
+        "maxDrawdown": 0.10676541391676124,
+        "medianHoldMinutes": 7200.240583333333,
+        "nTrades": 56,
+        "pnlAllTime": 302390.46744,
+        "pnlMonth": 46823.218369,
+        "profitFactor": 2.2845261566314106,
+        "profitFactorRobust": 1.6376316913872742,
+        "roiAllTime": 0.1832382859,
+        "topWinShare": 0.2831635187745008,
+        "turnoverMonth": 0.31534470603385967,
+        "winRate": 0.5178571428571429
+      },
+      "score": 0.34375,
+      "subAccounts": []
+    },
+    "0xe867fbdad3291530e41530301ecb77693850c78e": {
+      "abstraction": "portfolioMargin",
+      "address": "0xe867fbdad3291530e41530301ecb77693850c78e",
+      "coverageStart": 1767280458669,
+      "failStreak": 0,
+      "id": 6,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1767280458669,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 16353459.03829718,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 22.2,
+        "fundingShare": 0.004458956761147607,
+        "hedgeRatio": 0.0,
+        "historyDays": 330.69718819444444,
+        "makerRatio": 0.6756756756756757,
+        "maxDrawdown": 0.3526396306908573,
+        "medianHoldMinutes": 436.3881666666666,
+        "nTrades": 88,
+        "pnlAllTime": 47005898.59388,
+        "pnlMonth": 33962.52,
+        "profitFactor": 2.0471672838673207,
+        "profitFactorRobust": 1.562212549484944,
+        "roiAllTime": 1.9929396496,
+        "topWinShare": 0.23689062354799098,
+        "turnoverMonth": 1.2908100995982326,
+        "winRate": 0.625
+      },
+      "score": 0.3375,
+      "subAccounts": []
+    },
+    "0xe9ec1d90652e13521623fb048f1c77883c597859": {
+      "abstraction": "unifiedAccount",
+      "address": "0xe9ec1d90652e13521623fb048f1c77883c597859",
+      "coverageStart": 1787667967121,
+      "failStreak": 0,
+      "id": 7,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1787667967121,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 1434687.5857660002,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 20.818181818181817,
+        "fundingShare": 0.011747184152531051,
+        "hedgeRatio": 7.070760636147974e-05,
+        "historyDays": 94.73065518518519,
+        "makerRatio": 0.9606986899563319,
+        "maxDrawdown": 0.14008991815442878,
+        "medianHoldMinutes": 142.89955,
+        "nTrades": 71,
+        "pnlAllTime": 520821.7110210001,
+        "pnlMonth": 388889.56548,
+        "profitFactor": 2.796477866280883,
+        "profitFactorRobust": 2.437915132101739,
+        "roiAllTime": 0.295095595,
+        "topWinShare": 0.1282194071702082,
+        "turnoverMonth": 22.311686939780163,
+        "winRate": 0.6619718309859155
+      },
+      "score": 0.51875,
+      "subAccounts": [
+        "0x5494ac601f0e61bdb4db6c84775ba4ee2a3618cf"
+      ]
+    },
+    "0xf2f79c84483b18f23404c2936977e1d86ce5e177": {
+      "abstraction": "unifiedAccount",
+      "address": "0xf2f79c84483b18f23404c2936977e1d86ce5e177",
+      "coverageStart": 1770650622929,
+      "failStreak": 2,
+      "id": 8,
+      "label": null,
+      "master": null,
+      "membership": [
+        [
+          1770650622929,
+          1795293358563,
+          0
+        ],
+        [
+          1795293358563,
+          null,
+          1
+        ]
+      ],
+      "metrics": {
+        "accountValue": 348040.66646881,
+        "equitySource": "perp+spot",
+        "fillsPerDay": 16.5,
+        "fundingShare": 0.006153248511853563,
+        "hedgeRatio": 0.0,
+        "historyDays": 291.6906574074074,
+        "makerRatio": 0.8787878787878788,
+        "maxDrawdown": 0.5177327975591973,
+        "medianHoldMinutes": 166.99384166666667,
+        "nTrades": 60,
+        "pnlAllTime": 692452.7838900001,
+        "pnlMonth": 12761.186332,
+        "profitFactor": 2.9509062873813368,
+        "profitFactorRobust": 1.6477981039447676,
+        "roiAllTime": 0.2560548908,
+        "topWinShare": 0.44159592224562316,
+        "turnoverMonth": 2.4734263921918624,
+        "winRate": 0.7
+      },
+      "score": 0.377778,
+      "subAccounts": [
+        "0x06535219e782119ef56b3fe0d70eb283b30a033c"
+      ]
+    }
+  },
+  "coinBackfillQueue": [],
+  "coins": [
+    {
+      "coin": "BTC",
+      "pinned": true,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "ETH",
+      "pinned": true,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "SOL",
+      "pinned": true,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "HYPE",
+      "pinned": true,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "VVV",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "ZEC",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "GRASS",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "kBONK",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "ZRO",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "PONS",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "STRK",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "PUMP",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "BNB",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "ETHFI",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "NEAR",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "LIT",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "XPL",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "MEGA",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "FARTCOIN",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "ENA",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "ASTER",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "CRV",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": 1795737600000
+    },
+    {
+      "coin": "WLFI",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": 1795651200000
+    },
+    {
+      "coin": "PAXG",
+      "pinned": false,
+      "trackedFrom": 1763683200000,
+      "trackedTo": 1795651200000
+    },
+    {
+      "coin": "ONDO",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "SUI",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "PENDLE",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "MORPHO",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "TIA",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "STX",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "AAVE",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "DASH",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "SKY",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "kPEPE",
+      "pinned": false,
+      "trackedFrom": 1795651200000,
+      "trackedTo": null
+    },
+    {
+      "coin": "PAXG",
+      "pinned": false,
+      "trackedFrom": 1795737600000,
+      "trackedTo": null
+    }
+  ],
+  "criteria": {
+    "current": {
+      "effectiveFrom": 1795292655638,
+      "gates": [
+        {
+          "description": "Hyperliquid userRole values rejected immediately before calling additional Stage 2 endpoints.",
+          "key": "excludeRoles",
+          "label": "Excluded account roles",
+          "op": "not_in",
+          "unit": "role",
+          "value": [
+            "vault",
+            "agent",
+            "missing"
+          ]
+        },
+        {
+          "description": "Maximum average aggregated (aggregateByTime=true) main-perp fills per active UTC day over the last 30 days.",
+          "key": "hft.fillsPerDay",
+          "label": "Max fills per day",
+          "op": "<=",
+          "unit": "count",
+          "value": 500.0
+        },
+        {
+          "description": "Minimum median holding duration in minutes across completed main-perp round-trip trades.",
+          "key": "hft.medianHoldMinutes",
+          "label": "Min median hold duration",
+          "op": ">=",
+          "unit": "minutes",
+          "value": 5.0
+        },
+        {
+          "description": "Minimum day span covered when userFillsByTime hits the 10,000-fill rolling cap.",
+          "key": "hft.minTruncatedSpanDays",
+          "label": "Min 10k-fill span days",
+          "op": ">=",
+          "unit": "days",
+          "value": 7.0
+        },
+        {
+          "description": "Maker fill ratio paired with mm.turnoverMonth to exclude high-turnover market makers.",
+          "key": "mm.makerRatio",
+          "label": "Max MM maker ratio",
+          "op": "<=",
+          "unit": "ratio",
+          "value": 0.9
+        },
+        {
+          "description": "Monthly turnover threshold paired with mm.makerRatio to exclude market makers.",
+          "key": "mm.turnoverMonth",
+          "label": "Max MM monthly turnover",
+          "op": "<=",
+          "unit": "x",
+          "value": 30.0
+        },
+        {
+          "description": "Maximum ratio of |net main-perp userFunding| to max(|pnlAllTime|, 1.0).",
+          "key": "funding.maxShare",
+          "label": "Max funding PnL share",
+          "op": "<=",
+          "unit": "ratio",
+          "value": 0.5
+        },
+        {
+          "description": "Maximum notional-weighted spot token coverage ratio across open perp short positions.",
+          "key": "hedge.maxRatio",
+          "label": "Max spot-perp hedge ratio",
+          "op": "<=",
+          "unit": "ratio",
+          "value": 0.8
+        },
+        {
+          "description": "Minimum completed main-perp round-trip trades closed within the last 90 UTC days.",
+          "key": "passive.minRecentTrades90d",
+          "label": "Min trades in 90 days",
+          "op": ">=",
+          "unit": "count",
+          "value": 5
+        },
+        {
+          "description": "Minimum completed main-perp round-trip trades required for statistical validity.",
+          "key": "sample.minTrades",
+          "label": "Min total trades",
+          "op": ">=",
+          "unit": "count",
+          "value": 20
+        },
+        {
+          "description": "Minimum elapsed calendar days since the earliest available main-perp fill.",
+          "key": "sample.minHistoryDays",
+          "label": "Min history days",
+          "op": ">=",
+          "unit": "days",
+          "value": 30.0
+        },
+        {
+          "description": "Maximum peak-to-trough perpAllTime PnL drawdown relative to peak accountValue.",
+          "key": "mdd.maxDrawdown",
+          "label": "Max drawdown",
+          "op": "<=",
+          "unit": "ratio",
+          "value": 0.45
+        },
+        {
+          "description": "Minimum profit factor after removing the single largest winning trade (null/zero-loss passes).",
+          "key": "pf.minRobust",
+          "label": "Min robust profit factor",
+          "op": ">=",
+          "unit": "ratio",
+          "value": 1.5
+        },
+        {
+          "description": "Maximum share of total gross winning PnL attributable to a single trade.",
+          "key": "lucky.maxTopWinShare",
+          "label": "Max top win share",
+          "op": "<=",
+          "unit": "ratio",
+          "value": 0.5
+        }
+      ],
+      "hash": "sha256:a32d85a12385196be288f42d78998fe2cdda9f8dd4aa1bf5a42e339eae2c6f4b",
+      "membership": {
+        "excludeVaults": true,
+        "exitAfterFailedDays": 3,
+        "subaccounts": "merge_after_filter"
+      },
+      "scope": {
+        "hip3": false,
+        "perpDex": "main",
+        "spot": false
+      },
+      "stage1": [
+        {
+          "description": "Minimum account equity in USD required from leaderboard or subaccount evaluation to enter Stage 2.",
+          "key": "minAccountValue",
+          "label": "Min account value",
+          "op": ">=",
+          "unit": "USD",
+          "value": 1000000.0
+        },
+        {
+          "description": "Leaderboard all-time PnL must be strictly positive (> 0 USD).",
+          "key": "minPnlAllTime",
+          "label": "Min all-time PnL",
+          "op": ">",
+          "unit": "USD",
+          "value": 0.0
+        },
+        {
+          "description": "Leaderboard monthly PnL divided by accountValue must exceed -0.20.",
+          "key": "minPnlMonthRatio",
+          "label": "Min monthly PnL / AV ratio",
+          "op": ">",
+          "unit": "ratio",
+          "value": -0.2
+        },
+        {
+          "description": "Maximum leaderboard monthly volume divided by accountValue to pre-exclude market makers.",
+          "key": "maxTurnoverMonth",
+          "label": "Max monthly turnover",
+          "op": "<=",
+          "unit": "x",
+          "value": 150.0
+        }
+      ],
+      "stats": {
+        "candidates": 1574,
+        "passed": 9,
+        "rejectedBy": {
+          "hedge": 49,
+          "hft": 945,
+          "lucky": 307,
+          "mdd": 613,
+          "mm": 38,
+          "passive": 1314,
+          "pf": 1374,
+          "role": 13,
+          "sample": 1259
+        }
+      },
+      "version": 1
+    },
+    "history": [],
+    "schemaVersion": 1
+  },
+  "dynamicCoinSticky": {
+    "AAVE": 0,
+    "ASTER": 0,
+    "BNB": 4,
+    "DASH": 0,
+    "ENA": 1,
+    "ETHFI": 0,
+    "FARTCOIN": 4,
+    "GRASS": 0,
+    "LIT": 0,
+    "MEGA": 4,
+    "MORPHO": 0,
+    "NEAR": 4,
+    "ONDO": 0,
+    "PAXG": 0,
+    "PENDLE": 0,
+    "PONS": 4,
+    "PUMP": 0,
+    "SKY": 0,
+    "STRK": 0,
+    "STX": 0,
+    "SUI": 0,
+    "TIA": 0,
+    "VVV": 0,
+    "XPL": 4,
+    "ZEC": 0,
+    "ZRO": 0,
+    "kBONK": 2,
+    "kPEPE": 0
+  },
+  "lastCoinUpdateDate": "2026-11-28",
+  "launchedAt": 1795293358563,
+  "nextAddrId": 11
+}
