@@ -15,6 +15,9 @@ permissions:
   id-token: write
   actions: write
 
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   score:
     name: Daily Discovery, Stage 2 Scoring & Candles

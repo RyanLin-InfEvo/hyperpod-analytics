@@ -94,18 +94,23 @@ Executed against live `https://stats-data.hyperliquid.xyz/Mainnet/leaderboard` a
 - `7914516` — `feat(snapshot): implement pre-launch snapshot reconstruction and szi verification (Task 4.2)`
 - `0eea3cd` — `feat(ops): implement health evaluator, verify-live reconciliation, and Phase 4 CLI commands (Task 4.4)`
 - `33554d3` — `ci(workflows): add fast, daily, backfill, and frontend workflows and update README bootstrap guide (Tasks 4.5-4.6)`
+- `ec03982` — `docs(phase-4): add Phase 4 gate report and set status to WAITING_USER_REVIEW`
+
+### 5.1 Post-Push Live Deployment & Background Full Bootstrap (Updated `2026-11-21`)
+- **Workflow `GH_TOKEN` Fix:** Added top-level `env: GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` across `.github/workflows/{pipeline-fast,pipeline-daily,pipeline-backfill,deploy-frontend}.yml` so `gh auth setup-git` credentials propagate to `hyperpod publish` temporary worktrees during `git push`.
+- **Live Seed Branches Pushed (`origin/state` & `origin/gh-pages`):**
+  - `hyperpod discover` (`46,294` rows -> `1,420` Stage 1 candidates), followed by unmodified-gate seed `bootstrap` (`activeWhitelistCount: 2`: `0xb45f5c538dd6573cae750d29b22117e45e0f9a6d`, `0xe9ec1d90652e13521623fb048f1c77883c597859`; `trackedCoins`: `24`; `daysReconstructed: 15`; `sziMismatches: 0`; `totalBytesOnDisk: 6,877,290`).
+  - Pushed orphan branches: `origin/state` (`9fa8e77c12ae9b4c719c082e3fa69ea588a68611`) and `origin/gh-pages` (`7a7b205c025010df3ed0bff434364c00985332be`), `hyperpod verify-live --sample 3` (`passed: true`, `sampledCount: 2`, `checksCount: 48`, `mismatches: []`).
+- **Full-Cohort Local Background Bootstrap Running:**
+  - Detached `setsid` background process launched with production `config/pipeline.yaml` (`reconstructDays: 365`, `reconstruct1hDays: 208`, `--push-remote git@github-hyperpod:RyanLin-InfEvo/hyperpod-analytics.git`).
+  - Session PID: `1726733` (Python PID `1726814`), PID file: `state/bootstrap.pid`, log: `state/bootstrap.log`, resumable checkpoint: `state/daily/backfill_cursor.json`.
 
 ---
 
 ## 6. Required User Actions (`§11.3` / `§13`)
 
-1. **Push `main` & Configure GitHub Repository Settings (`§13`):**
-   - Push local `main` commits (`git push origin main`).
-   - Confirm in GitHub Repo Settings:
-     - `Settings → Actions → General → Workflow permissions`: **Read and write permissions**.
-     - `Settings → Pages → Build and deployment → Source`: **GitHub Actions**.
-2. **Initial Full-Cohort Bootstrap & Workflow Smoke (`4.6` & Phase `4b`):**
-   - Run local resumable bootstrap (`28–35h` full history) or trigger `pipeline-backfill.yml` on GitHub Actions, push `state` and `gh-pages`, and trigger `pipeline-fast.yml` & `pipeline-daily.yml` once on GitHub Actions (`verify-live --sample 3` runs automatically in `daily`).
-   - *Per `§9 Phase 4` & `§11.3`, **Phase 4b** (`hyperpod health --hours 24` after 24h of scheduled cron runs) does NOT block starting Phase 5.*
-3. **Approve Gate Review to Start Phase 5:**
-   - Review this report and reply to authorize **Phase 5 — 前端基礎與計算引擎 (`Tasks 5.1–5.4`, including Proposal 0003 Stage A optional `tier`/`sources` schema fields)**.
+1. **Completed Setup (`§13`):** GitHub `Workflow permissions` (`Read and write`), `Pages Source` (`GitHub Actions`), `main` push, and initial `origin/state` + `origin/gh-pages` seed push are complete.
+2. **Monitor Scheduled Runs & Background Bootstrap (`Phase 4b`):**
+   - Let the detached local full-cohort `hyperpod bootstrap` run finish in the background (`tail -f state/bootstrap.log` or inspect `state/daily/backfill_cursor.json`).
+   - Verify scheduled `pipeline-fast` (every 10m) & `pipeline-daily` runs stay green on GitHub Actions; after 24h of scheduled runs verify `hyperpod health --hours 24` *(per `§9` & `§11.3`, Phase 4b does NOT block Phase 5)*.
+3. **Start Phase 5 (`5.1`–`5.4`):** Ready to launch **Phase 5 — 前端基礎與計算引擎 (`Tasks 5.1–5.4`, including Proposal 0003 Stage A optional `tier`/`sources` fields)** in a new conversation context.

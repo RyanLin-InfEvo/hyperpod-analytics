@@ -6,9 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # HyperPod Cross-Session Status (`docs/status.md`)
 
 - `currentPhase`: `Phase 4`
-- `currentTask`: `Phase 4 Gate Review (4.1–4.6 Complete; Phase 4b 24h Soak Pending Live Schedule)`
+- `currentTask`: `Phase 4a Complete & Online Seed Live; Full Bootstrap Running in Background; Ready for Phase 5`
 - `state`: `WAITING_USER_REVIEW`
-- `lastUpdated`: `2026-11-21T18:35:00+08:00`
+- `lastUpdated`: `2026-11-21T20:40:00+08:00`
 
 ## Completed Commits & Artifacts
 - `2d8db9f` — Initial repo state on `main` (`Add gitignore and README`)
@@ -46,12 +46,16 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - `7914516` — Task 4.2: [`reconstruct.py`](../pipeline/src/hyperpod/snapshot/reconstruct.py), [`test_reconstruct.py`](../pipeline/tests/test_reconstruct.py)
 - `0eea3cd` — Task 4.4: [`health.py`](../pipeline/src/hyperpod/ops/health.py), [`cli.py`](../pipeline/src/hyperpod/cli.py), [`test_health_and_cli_phase4.py`](../pipeline/tests/test_health_and_cli_phase4.py), [`test_contracts.py`](../pipeline/tests/test_contracts.py)
 - `33554d3` — Tasks 4.5–4.6: [`pipeline-fast.yml`](../.github/workflows/pipeline-fast.yml), [`pipeline-daily.yml`](../.github/workflows/pipeline-daily.yml), [`pipeline-backfill.yml`](../.github/workflows/pipeline-backfill.yml), [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml), [`README.md`](../README.md)
-- Phase 4 Gate Report: [`docs/phase-reports/phase-4.md`](phase-reports/phase-4.md)
+- `ec03982` — Phase 4 Gate Report: [`docs/phase-reports/phase-4.md`](phase-reports/phase-4.md)
+- Live Seed Orphan Branches Pushed: `origin/state` (`9fa8e77c`), `origin/gh-pages` (`7a7b205c`) — `2` active whitelist members, `24` tracked coins, `sziMismatches: 0`, `verify-live` passed (`48 / 48` checks)
 
 ## Active Background Jobs
-- None *(local full-cohort `hyperpod bootstrap` not started; bounded live E2E smoke test in `/tmp/hyperpod-phase4-live` passed and cleaned up)*
+- **Full-Cohort `hyperpod bootstrap` (Local Detached Process):**
+  - Command: `hyperpod bootstrap --state-dir /home/ryan/Documents/Hyperpod/state --data-dir /home/ryan/Documents/Hyperpod/data --push-remote git@github-hyperpod:RyanLin-InfEvo/hyperpod-analytics.git`
+  - Session PID: `1726733` (`python3` PID `1726814`), recorded in `state/bootstrap.pid`
+  - Log: `state/bootstrap.log` | Resumable checkpoint: `state/daily/backfill_cursor.json` (updates every `20` candidates; ETA ~28–35h)
 
 ## Pending User Actions / Proposals (§11.2 / §11.3 / §13)
-1. **Push `main` & Configure GitHub Repo Settings (`§13`):** Push local `main` commits to `origin`, set `Settings → Actions → General → Workflow permissions` to **Read and write permissions**, and set `Settings → Pages → Build and deployment → Source` to **GitHub Actions**.
-2. **Initial Full Bootstrap & Phase 4b 24h Scheduled Soak:** Run local `hyperpod bootstrap --push-remote ...` (or trigger `pipeline-backfill.yml`), trigger `pipeline-fast.yml` & `pipeline-daily.yml` on GitHub Actions, and after 24h of scheduled runs verify `hyperpod health --hours 24` *(Phase 4b does not block starting Phase 5 per `§9` & `§11.3`)*.
-3. **Review Gate Report & Authorize Phase 5 (`5.1`–`5.4`):** Review [`docs/phase-reports/phase-4.md`](phase-reports/phase-4.md) and confirm proceeding to **Phase 5 — 前端基礎與計算引擎**.
+1. **Completed Setup (`§13`):** GitHub `Workflow permissions` (`Read and write`), `Pages Source` (`GitHub Actions`), `main` push, workflow `GH_TOKEN` propagation, and initial seed `origin/state` + `origin/gh-pages` publish are complete.
+2. **Phase 4b 24h Scheduled Soak (Non-Blocking for Phase 5):** Verify scheduled `pipeline-fast` / `pipeline-daily` runs on GitHub Actions and run `hyperpod health --hours 24` after 24h of scheduled cron execution (and once background full `bootstrap` completes & auto-pushes).
+3. **Start Phase 5 (`5.1`–`5.4`):** Ready to start **Phase 5 — 前端基礎與計算引擎 (incl. Proposal 0003 Stage A optional `tier`/`sources` fields)** in a new conversation context.
