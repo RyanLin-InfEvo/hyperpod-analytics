@@ -7,10 +7,8 @@ from __future__ import annotations
 
 import gzip
 import json
-import os
 import re
-import tempfile
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
 from typing import Any, Literal
 
@@ -27,29 +25,20 @@ from hyperpod.models.common import (
     NonEmptyStr,
     NonNegInt,
     NonNegNumber,
+    PosInt,
+    PosNumber,
 )
 from hyperpod.models.criteria import CriteriaFile
 from hyperpod.models.whitelist import Whitelist
 from hyperpod.scoring.trades import ClosedTradeTuple, FillDedupKey, OpenTradeState
 from hyperpod.scoring.whitelist import WhitelistStateRecord
+from hyperpod.storage.formats import atomic_write_bytes, read_json_file
 from hyperpod.util.time import recent_utc_dates
 
 StateOwner = Literal["daily", "fast", "bootstrap"]
 StatePartition = Literal["daily", "fast", "bootstrap"]
 _ADDRESS_RE = re.compile(r"^0x[0-9a-f]{40}$")
 _SHARD_RE = re.compile(r"^[0-9a-f]{2}$")
-
-
-def _atomic_write_bytes(path: Path, payload: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    try:
-        with os.fdopen(fd, "wb") as fh:
-            fh.write(payload)
-        os.replace(tmp_name, path)
-    except BaseException:
-        Path(tmp_name).unlink(missing_ok=True)
-        raise
 
 
 def _atomic_write_json(path: Path, data: Any, *, compress: bool = False) -> None:
@@ -59,14 +48,11 @@ def _atomic_write_json(path: Path, data: Any, *, compress: bool = False) -> None
     else:
         raw_text = json.dumps(data, indent=2, sort_keys=True) + "\n"
         payload = raw_text.encode("utf-8")
-    _atomic_write_bytes(path, payload)
+    atomic_write_bytes(path, payload)
 
 
 def _read_json(path: Path) -> Any:
-    if path.suffix == ".gz":
-        with gzip.open(path, "rt", encoding="utf-8") as fh:
-            return json.load(fh)
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json_file(path)
 
 
 class FillStatsState(ContractModel):
@@ -152,6 +138,67 @@ class BackfillCursorFile(ContractModel):
     expandedSubaccounts: NonNegInt = 0
 
 
+class LastSnapshotAddressState(ContractModel):
+    """Per-address snapshot state in ``state/fast/last_snapshot_state.json.gz``."""
+
+    addrId: NonNegInt
+    address: EvmAddress
+    tracked: StrictBool = True
+    av: JsonNumber | None = None
+    staleStreak: NonNegInt = 0
+    positions: dict[NonEmptyStr, tuple[JsonNumber, PosNumber | None]] = Field(default_factory=dict)
+
+
+class LastSnapshotStateFile(ContractModel):
+    """Latest fast-loop snapshot state in ``state/fast/last_snapshot_state.json.gz`` (§4)."""
+
+    tLast: NonNegInt | None = None
+    lastDate: DateStr | None = None
+    coins: list[NonEmptyStr] = Field(default_factory=list)
+    addresses: dict[NonEmptyStr, LastSnapshotAddressState] = Field(default_factory=dict)
+
+
+class BootstrapDoneFile(ContractModel):
+    """Bootstrap completion metadata in ``state/bootstrap/done.json`` (§4)."""
+
+    completedAt: NonNegInt
+    launchedAt: NonNegInt
+    whitelistVersion: DateStr
+    criteriaVersion: PosInt
+    activeWhitelistCount: NonNegInt
+    trackedCoins: list[NonEmptyStr]
+    reconstructDays: PosInt
+    reconstructStart: NonNegInt
+
+
+def _load_fill_cursors(path: Path) -> dict[int, int]:
+    if not path.is_file():
+        return {}
+    raw = _read_json(path)
+    if not isinstance(raw, dict):
+        raise ValueError(f"Expected JSON object in fill cursors file {path}")
+    out: dict[int, int] = {}
+    for raw_k, raw_v in raw.items():
+        if not isinstance(raw_k, str) or not raw_k.isdigit():
+            raise ValueError(f"Invalid addrId key in fill cursors {path}: {raw_k!r}")
+        if isinstance(raw_v, bool) or not isinstance(raw_v, int) or raw_v < 0:
+            raise ValueError(f"Invalid cursor timestamp in fill cursors {path}: {raw_v!r}")
+        out[int(raw_k)] = raw_v
+    return out
+
+
+def _save_fill_cursors(path: Path, cursors: Mapping[int, int]) -> None:
+    payload: dict[str, int] = {}
+    for addr_id in sorted(cursors):
+        val = cursors[addr_id]
+        if isinstance(addr_id, bool) or addr_id < 0:
+            raise ValueError(f"Invalid addrId {addr_id!r}")
+        if isinstance(val, bool) or not isinstance(val, int) or val < 0:
+            raise ValueError(f"Invalid cursor timestamp {val!r}")
+        payload[str(addr_id)] = val
+    _atomic_write_json(path, payload, compress=False)
+
+
 def address_shard(address: str) -> str:
     """Return the 2-hex-char shard identifier (``00``–``ff``) for an EVM address (§4)."""
     norm = address.strip().lower()
@@ -204,6 +251,22 @@ class StateStore:
     @property
     def latest_outputs_dir(self) -> Path:
         return self.daily_dir / "latest_outputs"
+
+    @property
+    def last_snapshot_state_path(self) -> Path:
+        return self.fast_dir / "last_snapshot_state.json.gz"
+
+    @property
+    def fast_fill_cursors_path(self) -> Path:
+        return self.fast_dir / "fill_cursors.json"
+
+    @property
+    def daily_publish_fill_cursors_path(self) -> Path:
+        return self.daily_dir / "publish_fill_cursors.json"
+
+    @property
+    def bootstrap_done_path(self) -> Path:
+        return self.bootstrap_dir / "done.json"
 
     def _require_write_owner(self, partition: StatePartition) -> None:
         if self.owner == "bootstrap":
@@ -311,6 +374,46 @@ class StateStore:
         """Atomically persist ``state/daily/backfill_cursor.json``."""
         self._require_write_owner("daily")
         _atomic_write_json(self.backfill_cursor_path, cursor.model_dump(), compress=False)
+
+    def load_last_snapshot_state(self) -> LastSnapshotStateFile | None:
+        """Read ``state/fast/last_snapshot_state.json.gz`` if present."""
+        if not self.last_snapshot_state_path.is_file():
+            return None
+        return LastSnapshotStateFile.model_validate(_read_json(self.last_snapshot_state_path))
+
+    def save_last_snapshot_state(self, state: LastSnapshotStateFile) -> None:
+        """Atomically persist ``state/fast/last_snapshot_state.json.gz``."""
+        self._require_write_owner("fast")
+        _atomic_write_json(self.last_snapshot_state_path, state.model_dump(), compress=True)
+
+    def load_fast_fill_cursors(self) -> dict[int, int]:
+        """Read ``state/fast/fill_cursors.json`` mapping ``addrId -> fillsCursorPublish``."""
+        return _load_fill_cursors(self.fast_fill_cursors_path)
+
+    def save_fast_fill_cursors(self, cursors: Mapping[int, int]) -> None:
+        """Atomically persist ``state/fast/fill_cursors.json``."""
+        self._require_write_owner("fast")
+        _save_fill_cursors(self.fast_fill_cursors_path, cursors)
+
+    def load_daily_publish_fill_cursors(self) -> dict[int, int]:
+        """Read ``state/daily/publish_fill_cursors.json`` mapping ``addrId -> cursor``."""
+        return _load_fill_cursors(self.daily_publish_fill_cursors_path)
+
+    def save_daily_publish_fill_cursors(self, cursors: Mapping[int, int]) -> None:
+        """Atomically persist ``state/daily/publish_fill_cursors.json``."""
+        self._require_write_owner("daily")
+        _save_fill_cursors(self.daily_publish_fill_cursors_path, cursors)
+
+    def load_bootstrap_done(self) -> BootstrapDoneFile | None:
+        """Read ``state/bootstrap/done.json`` if present."""
+        if not self.bootstrap_done_path.is_file():
+            return None
+        return BootstrapDoneFile.model_validate(_read_json(self.bootstrap_done_path))
+
+    def save_bootstrap_done(self, done: BootstrapDoneFile) -> None:
+        """Atomically persist ``state/bootstrap/done.json``."""
+        self._require_write_owner("bootstrap")
+        _atomic_write_json(self.bootstrap_done_path, done.model_dump(), compress=False)
 
     def save_daily_outputs(
         self,
@@ -435,5 +538,5 @@ class StateStore:
         if len(lines) > max_entries:
             lines = lines[-max_entries:]
         payload = ("\n".join(lines) + "\n").encode("utf-8")
-        _atomic_write_bytes(runs_path, payload)
+        atomic_write_bytes(runs_path, payload)
         return runs_path
