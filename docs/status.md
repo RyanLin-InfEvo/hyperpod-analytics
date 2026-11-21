@@ -6,9 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # HyperPod Cross-Session Status (`docs/status.md`)
 
 - `currentPhase`: `Phase 4`
-- `currentTask`: `4.1–4.5 (Snapshot, Candles, Reconstruct, Publish, Health & Workflows)`
-- `state`: `IN_PROGRESS`
-- `lastUpdated`: `2026-11-21T17:20:00+08:00`
+- `currentTask`: `Phase 4 Gate Review (4.1–4.6 Complete; Phase 4b 24h Soak Pending Live Schedule)`
+- `state`: `WAITING_USER_REVIEW`
+- `lastUpdated`: `2026-11-21T18:35:00+08:00`
 
 ## Completed Commits & Artifacts
 - `2d8db9f` — Initial repo state on `main` (`Add gitignore and README`)
@@ -40,10 +40,18 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - Phase 3 Gate Report: [`docs/phase-reports/phase-3.md`](phase-reports/phase-3.md)
 - Proposal 0002 (`maxDrawdown` scale normalization — **Accepted Option A1**): [`docs/proposals/0002-max-drawdown-scale-normalization.md`](proposals/0002-max-drawdown-scale-normalization.md)
 - Proposal 0003 (Multi-source address discovery & capital tiers — **Accepted Two-Stage Rollout, merged into `docs/implementation_plan.md`**): [`docs/proposals/0003-multi-tier-cohort-archetypes.md`](proposals/0003-multi-tier-cohort-archetypes.md)
+- `f882afd` — `chore(phase-4): start Phase 4 and tidy gitignore/status`
+- `c15d77d` — Task 4.3: [`formats.py`](../pipeline/src/hyperpod/storage/formats.py), [`state_store.py`](../pipeline/src/hyperpod/storage/state_store.py), [`site_writer.py`](../pipeline/src/hyperpod/storage/site_writer.py), [`git_publish.py`](../pipeline/src/hyperpod/storage/git_publish.py), [`test_site_writer_and_git_publish.py`](../pipeline/tests/test_site_writer_and_git_publish.py)
+- `79ba42b` — Task 4.1: [`candles.py`](../pipeline/src/hyperpod/snapshot/candles.py), [`collect.py`](../pipeline/src/hyperpod/snapshot/collect.py), [`test_snapshot_and_candles.py`](../pipeline/tests/test_snapshot_and_candles.py)
+- `7914516` — Task 4.2: [`reconstruct.py`](../pipeline/src/hyperpod/snapshot/reconstruct.py), [`test_reconstruct.py`](../pipeline/tests/test_reconstruct.py)
+- `0eea3cd` — Task 4.4: [`health.py`](../pipeline/src/hyperpod/ops/health.py), [`cli.py`](../pipeline/src/hyperpod/cli.py), [`test_health_and_cli_phase4.py`](../pipeline/tests/test_health_and_cli_phase4.py), [`test_contracts.py`](../pipeline/tests/test_contracts.py)
+- `33554d3` — Tasks 4.5–4.6: [`pipeline-fast.yml`](../.github/workflows/pipeline-fast.yml), [`pipeline-daily.yml`](../.github/workflows/pipeline-daily.yml), [`pipeline-backfill.yml`](../.github/workflows/pipeline-backfill.yml), [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml), [`README.md`](../README.md)
+- Phase 4 Gate Report: [`docs/phase-reports/phase-4.md`](phase-reports/phase-4.md)
 
 ## Active Background Jobs
-- None
+- None *(local full-cohort `hyperpod bootstrap` not started; bounded live E2E smoke test in `/tmp/hyperpod-phase4-live` passed and cleaned up)*
 
 ## Pending User Actions / Proposals (§11.2 / §11.3 / §13)
-1. **Authorize Phase 4 (`4.1`–`4.6`):** Both Proposal `0002` (Option A1) and Proposal `0003` (Two-Stage Rollout in Phases 5–7 & Phase 9.1) are merged into [`docs/implementation_plan.md`](implementation_plan.md). Confirm to begin **Phase 4 (`4.1`–`4.6`)**.
-2. **GitHub Actions & Remote Push (`§13`):** Confirm GitHub Repo `Settings → Actions → General → Workflow permissions` is set to **Read and write permissions**, push local `main` commits to `origin` when Phase 4 enables online Workflows, and verify `ci.yml` passes on GitHub Actions.
+1. **Push `main` & Configure GitHub Repo Settings (`§13`):** Push local `main` commits to `origin`, set `Settings → Actions → General → Workflow permissions` to **Read and write permissions**, and set `Settings → Pages → Build and deployment → Source` to **GitHub Actions**.
+2. **Initial Full Bootstrap & Phase 4b 24h Scheduled Soak:** Run local `hyperpod bootstrap --push-remote ...` (or trigger `pipeline-backfill.yml`), trigger `pipeline-fast.yml` & `pipeline-daily.yml` on GitHub Actions, and after 24h of scheduled runs verify `hyperpod health --hours 24` *(Phase 4b does not block starting Phase 5 per `§9` & `§11.3`)*.
+3. **Review Gate Report & Authorize Phase 5 (`5.1`–`5.4`):** Review [`docs/phase-reports/phase-4.md`](phase-reports/phase-4.md) and confirm proceeding to **Phase 5 — 前端基礎與計算引擎**.
