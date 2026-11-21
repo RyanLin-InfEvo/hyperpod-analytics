@@ -51,7 +51,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
     *   **Test-First Remediation & Re-Audit:** Any defect found during self-correction or audit MUST be reproduced with a failing test BEFORE fixing production code, and the remediation diff MUST undergo a focused secondary audit (verifying no symptom-level bandaid or special-case test overfitting).
 
 ## 4. UI & Frontend Standards (Phase 5–8)
-*   Consult `modern-web-guidance` (`/home/ryan/.gemini/config/plugins/modern-web-guidance-plugin/skills/modern-web-guidance/SKILL.md`) for web browser/DOM/gzip/canvas/CWV behavior and `apple-design` (`/home/ryan/.gemini/config/skills/apple-design/SKILL.md`) for layout clarity, typography, quiet defaults, and non-generic craft.
+*   Consult `modern-web-guidance` (`.agents/plugins/modern-web-guidance-plugin/skills/modern-web-guidance/SKILL.md`) for web browser/DOM/gzip/canvas/CWV behavior and `apple-design` (`.agents/skills/apple-design/SKILL.md`) for layout clarity, typography, quiet defaults, and non-generic craft.
 *   Keep headers/badges clean: show only meaningful operational status (data freshness badge, warnings, look-ahead bias disclaimer on reconstructed/current-cohort views), avoiding redundant AI-clutter badges.
 
 ## 5. Git & Commit Habits

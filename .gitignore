@@ -1,5 +1,6 @@
 .directory
 .gemini/
+.agents/
 .worktrees/
 
 # Secrets & credentials

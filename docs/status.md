@@ -5,10 +5,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 # HyperPod Cross-Session Status (`docs/status.md`)
 
-- `currentPhase`: `Phase 3`
-- `currentTask`: `3.5 (Proposals 0002 & 0003 Merged — Awaiting Phase 4 Go-Ahead)`
-- `state`: `WAITING_USER_REVIEW`
-- `lastUpdated`: `2026-11-19T15:38:00+08:00`
+- `currentPhase`: `Phase 4`
+- `currentTask`: `4.1–4.5 (Snapshot, Candles, Reconstruct, Publish, Health & Workflows)`
+- `state`: `IN_PROGRESS`
+- `lastUpdated`: `2026-11-21T17:20:00+08:00`
 
 ## Completed Commits & Artifacts
 - `2d8db9f` — Initial repo state on `main` (`Add gitignore and README`)
